@@ -26,22 +26,22 @@
 #'    \item reduceres Matrix storing the gene expression data after dimension reduction using PCA.
 #' }
 #' @export
+#' @import TSP
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Rosenkrantz, D. J., Stearns, R. E., & Lewis, II, P. M. (1977). An analysis of several heuristics for the traveling salesman problem. SIAM journal on computing, 6(3), 563-581.
 #' @examples
 #' data(HSMMdata)
+#' procdata <- preprocess(HSMMdata)
 #' #Choose MYOG gene expression as marker gene
 #' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
-#' HSMMdata <- preprocess(HSMMdata)
-#' HSMMpseudotime <- TSPpseudotime(HSMMdata, geneexpr = MYOGexpr, dim = 2)
+#' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
 #' plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
-#' diffval <- difftest(HSMMdata,HSMMpseudotime[[1]])
+#' diffval <- difftest(procdata,HSMMpseudotime[[1]])
 #' #Selected differentially expressed genes under qvlue cutoff of 0.05
-#' siggene <- row.names(diffval)[diffval$qval < 0.05]
+#' row.names(diffval)[diffval$qval < 0.05]
 #' singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
 
 TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startpoint = NULL, flip = FALSE, geneexpr = NULL, exprtrend = "increasing", maxtime = 100) {    
-      require(TSP)
       
       if (!is.null(geneexpr)) {
             if (!identical(sort(names(geneexpr)),sort(colnames(data)))) {

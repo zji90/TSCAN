@@ -13,14 +13,12 @@
 #' @param markerexpr The gene expression used to define the size of nodes.
 #' @return A ggplot2 object.
 #' @export
+#' @import ggplot2 plyr grid
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Cole Trapnell and Davide Cacchiarelli et al (2014): The dynamics and regulators of cell fate decisions are revealed by pseudo-temporal ordering of single cells. Nature Biotechnology
 #' @seealso \code{\link{TSPpseudotime}} for examples
 
 plotpseudotime <- function(pseudotimedata, x = 1, y = 2, show_tree = T, show_cell_names = T, cell_name_size = 3, markerexpr = NULL) {
-      require(ggplot2)
-      require(plyr)
-      require(grid)
       lib_info_with_pseudo <- pseudotimedata[[1]]
       TSPorder <- lib_info_with_pseudo$sample_name
       lib_info_with_pseudo$State <- factor(lib_info_with_pseudo$State)

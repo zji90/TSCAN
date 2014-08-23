@@ -30,17 +30,13 @@ Plot the TSP constructed pseudotime time
 \details{
 This function will plot the gene expression data after dimension reduction and link the data points with the constructed pseudotime path. It is written by plot_spanning_tree functioin in package monocle.
 }
-\examples{
-data(HSMMdata)
-MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
-HSMMdata <- preprocess(HSMMdata)
-HSMMpseudotime <- TSPpseudotime(HSMMdata, geneexpr = MYOGexpr, dim = 2)
-plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
-}
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }
 \references{
 Cole Trapnell and Davide Cacchiarelli et al (2014): The dynamics and regulators of cell fate decisions are revealed by pseudo-temporal ordering of single cells. Nature Biotechnology
+}
+\seealso{
+\code{\link{TSPpseudotime}} for examples
 }
 

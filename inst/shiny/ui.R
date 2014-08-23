@@ -1,5 +1,5 @@
 ######################################################
-##                      SCAtool                     ##
+##                      TSCAN                       ##
 ##             Interactive User Interface           ##
 ##                     UI File                      ##
 ##           Author:Zhicheng Ji, Hongkai Ji         ##
@@ -14,7 +14,7 @@ sidebarPanel3 <- function (...)
 shinyUI(      
       pageWithSidebar(
             
-            headerPanel('SCAtool: Single-cell Analysis Tool'),
+            headerPanel('TSCAN: Tools for Single-Cell ANalysis'),
             
             sidebarPanel3(
                   

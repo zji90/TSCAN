@@ -9,6 +9,7 @@
 #' @param cell_size Size of cells in the plot.
 #' @return ggplot2 object.
 #' @export
+#' @import ggplot2
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @seealso \code{\link{TSPpseudotime}} for examples
 

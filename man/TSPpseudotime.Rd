@@ -46,13 +46,22 @@ have a definite starting/ending point, users can specify a starting point, other
 Users can also use the expression value of a gene to determine the optimal starting point. The gene expression value must change monotonically over the true biological process.
 K-means clustering will be used to determine the different stages of cell during the biological process.
 }
+\examples{
+data(HSMMdata)
+procdata <- preprocess(HSMMdata)
+#Choose MYOG gene expression as marker gene
+MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
+HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
+diffval <- difftest(procdata,HSMMpseudotime[[1]])
+#Selected differentially expressed genes under qvlue cutoff of 0.05
+row.names(diffval)[diffval$qval < 0.05]
+singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
+}
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }
 \references{
 Rosenkrantz, D. J., Stearns, R. E., & Lewis, II, P. M. (1977). An analysis of several heuristics for the traveling salesman problem. SIAM journal on computing, 6(3), 563-581.
-}
-\seealso{
-\code{\link{plotpseudotime}} for examples
 }
 

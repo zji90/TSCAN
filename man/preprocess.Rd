@@ -36,6 +36,6 @@ The default setting will first take log2 of the raw data after adding a pseudoco
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }
 \seealso{
-\code{\link{plotpseudotime}} for examples
+\code{\link{TSPpseudotime}} for examples
 }
 

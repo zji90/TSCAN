@@ -1,5 +1,5 @@
 ######################################################
-##                      SCAtool                     ##
+##                      TSCAN                       ##
 ##             Interactive User Interface           ##
 ##                     Server File                  ##
 ##           Author:Zhicheng Ji, Hongkai Ji         ##

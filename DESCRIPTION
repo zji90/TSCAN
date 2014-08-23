@@ -1,14 +1,24 @@
-Package: SCAtools
+Package: TSCAN
 Type: Package
-Title: SCAtools: Single-Cell Analysis Tools
+Title: TSCAN: Tools for Single-Cell ANalysis
 Version: 0.99.0
 Date: 2014-08-21
 Author: Zhicheng Ji, Hongkai Ji
 Maintainer: Zhicheng Ji <zji4@jhu.edu>
-Description: SCAtools enables users to easily construct and tune pseudotemporal
-    cell ordering as well as analyzing differentially expressed genes. SCAtools
+Description: TSCAN enables users to easily construct and tune pseudotemporal
+    cell ordering as well as analyzing differentially expressed genes. TSCAN
     comes with a user-friendly GUI written in shiny. More functions will come
     in the future.
 License: GPL(>=2)
-Imports: ggplot2, shiny, plyr, grid, fastICA, igraph, TSP, combinat, mgcv
-Depends: R(>= 2.10.0)
+Imports:
+    ggplot2,
+    shiny,
+    plyr,
+    grid,
+    fastICA,
+    igraph,
+    TSP,
+    combinat,
+    mgcv
+Depends:
+    R(>= 2.10.0)

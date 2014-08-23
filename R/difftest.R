@@ -10,14 +10,15 @@
 #' @param df Numeric value specifying the degree of freedom used in the GAM model.
 #' @return Data frame containing pvalues and qvalues of testing differentially expression.
 #' @export
+#' @import mgcv
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @seealso \code{\link{TSPpseudotime}} for examples
 
-difftest <- function(data, pseudotime, df = 3) {      
+difftest <- function(data, pseudotime, df = 3) {   
       row.names(pseudotime) <- pseudotime[,1]
       ptime <- pseudotime[colnames(data),3]
       pval <- apply(data, 1, function(x) {
-            anova(gam(x~s(ptime,k=df)),lm(x~1))$s.table[4]            
+            anova(mgcv::gam(x~s(ptime,k=df)),lm(x~1))$s.table[4]            
       })      
       qval <- p.adjust(pval, method = "fdr")
       data.frame(pval = pval,qval = qval)
