@@ -89,6 +89,7 @@ shinyServer(function(input, output,session) {
                               tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
                         }
                   }
+                  Maindata$fullrawlogdata <- tmpdata
                   tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),!colnames(tmpdata) %in% input$Preprocessexclude]
                   tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
                   Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
@@ -145,7 +146,7 @@ shinyServer(function(input, output,session) {
                   tagList(
                         h5("Uploaded Pseudotime and cell ordering:"),
                         dataTableOutput("Orderinguploadshowpdata")    
-                        )
+                  )
             }
       })
       
@@ -166,7 +167,7 @@ shinyServer(function(input, output,session) {
                         p("Cell2  1     25  "),
                         p("Cell3  2     75  "),
                         p("Cell4  3     100 ")                        
-                        )
+                  )
             }
       })
       
@@ -220,26 +221,64 @@ shinyServer(function(input, output,session) {
       output$Orderingptimetrimui <- renderUI({
             if (input$Orderingptimetrimtf) {
                   wellPanel(
-                        radioButtons("Orderingptimetrimmethod","",list("Trim a branch/cluster"="branch","Trim certain cells"="cell")),
+                        radioButtons("Orderingptimetrimmethod","",choices=list("branch/cluster"="branch","cells"="cell","expression values"="expression")),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='branch'",
                                          selectInput("Orderingptimetrimbranchselect","Select branch id on original plot",choices = sort(unique(Maindata$scapdata$State)),multiple = T)
                         ),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='cell'",
                                          selectInput("Orderingptimetrimcellselect","Select cell name",choices = colnames(Maindata$procdata),multiple = T)
                         ),
-                        p(actionButton("Orderingptimetrimbutton","Trim")),
-                        p(actionButton("Orderingptimetrimreset","Reset"))
+                        conditionalPanel(condition="input.Orderingptimetrimmethod=='expression'",
+                                          helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the right."),
+                                         selectInput("Orderingexpressiontrimgene","Gene",choices=row.names(Maindata$rawlogdata)),
+                                         radioButtons("Orderingexpressiontrimgtlt","",choices=list("greater than"="greater","smaller than"="smaller")),
+                                         textInput("Orderingexpressiontrimvalue","Value",value=0),
+                                         p(actionButton("Orderingexpressiontrimaddbutton","Add criteria"))                                         
+                        ),
+                        p(actionButton("Orderingptimetrimbutton","Trim"),actionButton("Orderingptimetrimreset","Reset"))
                   )
             }
       })
       
       observe({
-            if (is.null(Maindata$reduceres)) {
-                  Maindata$trimlist <- NULL
+            if (is.null(Maindata$trimlist)) {                  
                   Maindata$reduceres <- Maindata$fullreduceres
                   Maindata$procdata <- Maindata$fullprocdata
+                  Maindata$rawlogdata <- Maindata$fullrawlogdata
+            } else {
+                  Maindata$reduceres <- Maindata$fullreduceres[,!colnames(Maindata$fullreduceres) %in% Maindata$trimlist]
+                  Maindata$procdata <- Maindata$fullprocdata[!row.names(Maindata$fullprocdata) %in% Maindata$trimlist,] 
+                  Maindata$rawlogdata <- Maindata$fullrawlogdata[!colnames(Maindata$fullrawlogdata) %in% Maindata$trimlist,] 
             }
       })
+      
+      observe({
+            if (!is.null(input$Orderingexpressiontrimaddbutton) && input$Orderingexpressiontrimaddbutton > 0) {
+                  isolate({
+                        if (is.null(Maindata$trimexprlist)) {
+                              Maindata$trimexprlist <- data.frame(gene=input$Orderingexpressiontrimgene,relationship=input$Orderingexpressiontrimgtlt,value=input$Orderingexpressiontrimvalue,stringsAsFactors = F)
+                        } else {
+                              Maindata$trimexprlist <- rbind(Maindata$trimexprlist,data.frame(gene=input$Orderingexpressiontrimgene,relationship=input$Orderingexpressiontrimgtlt,value=input$Orderingexpressiontrimvalue,stringsAsFactors = F))
+                        }    
+                        celllist <- 1:ncol(Maindata$rawlogdata)
+                        for (i in 1:nrow(Maindata$trimexprlist)) {
+                              tmpgene <- Maindata$trimexprlist[i,1]
+                              tmprela <- Maindata$trimexprlist[i,2]
+                              tmpvalue <- Maindata$trimexprlist[i,3]
+                              if (tmprela == "greater") {
+                                    celllist <- intersect(celllist,which(Maindata$rawlogdata[tmpgene,] > tmpvalue))
+                              } else {
+                                    celllist <- intersect(celllist,which(Maindata$rawlogdata[tmpgene,] < tmpvalue))
+                              }                              
+                        }                        
+                        Maindata$trimexprcelllist <- celllist
+                  })                       
+            }            
+      })
+      
+      output$trimexprlistshowtable <- renderTable(Maindata$trimexprlist)
+      
+      output$trimexprshowcelllist <- renderText(colnames(Maindata$rawlogdata)[Maindata$trimexprcelllist])
       
       observe({
             if (!is.null(input$Orderingptimetrimbutton) && input$Orderingptimetrimbutton > 0) {
@@ -248,9 +287,9 @@ shinyServer(function(input, output,session) {
                               Maindata$trimlist <- Maindata$scapdata$sample_name[Maindata$scapdata$State %in% as.numeric(input$Orderingptimetrimbranchselect)]      
                         } else if (input$Orderingptimetrimmethod == "cell") {
                               Maindata$trimlist <- input$Orderingptimetrimcellselect
+                        } else if (input$Orderingptimetrimmethod == "expression") {
+                              Maindata$trimlist <- colnames(Maindata$rawlogdata)[Maindata$trimexprcelllist]
                         }
-                        Maindata$reduceres <- Maindata$reduceres[,!colnames(Maindata$reduceres) %in% Maindata$trimlist]
-                        Maindata$procdata <- Maindata$procdata[!row.names(Maindata$procdata) %in% Maindata$trimlist,]          
                   })
             }
       })
@@ -259,12 +298,28 @@ shinyServer(function(input, output,session) {
             if (!is.null(input$Orderingptimetrimreset) && input$Orderingptimetrimreset > 0){
                   isolate({
                         Maindata$trimlist <- NULL
+                        Maindata$trimexprlist <- NULL
+                        Maindata$trimexprcelllist <- NULL
                         Maindata$reduceres <- Maindata$fullreduceres
                         Maindata$procdata <- Maindata$fullprocdata
+                        Maindata$rawlogdata <- Maindata$fulllograwdata
                   })
             }
       })
       
+      output$trimexprshowheatmap <- renderPlot({
+            if (!is.null(Maindata$trimexprlist)) {
+                  colcolorall <- rep("cyan",ncol(Maindata$rawlogdata))
+                  colcolorall[Maindata$trimexprcelllist] <- "blue"
+                  if (nrow(Maindata$trimexprlist) == 1) {
+                        plot(Maindata$rawlogdata[Maindata$trimexprlist[,1],],col=colcolorall,lty=19,ylab="Expression value")     
+                        legend("topleft",legend=c("Trimmed cells","Retained cells"),lty=19,col=c("blue","cyan"))                        
+                  } else {
+                        heatmap.2(Maindata$rawlogdata[Maindata$trimexprlist[,1],,drop=F],col=bluered,Colv=F,dendrogram="none",trace="none",Rowv=F,ColSideColors=colcolorall,useRaster=T,cexRow=0.7,srtRow=-45)
+                        legend("bottomleft",legend=c("Trimmed cells","Retained cells"),lwd=1,col=c("blue","cyan"))                        
+                  }                  
+            }            
+      })
       
       output$Orderingptimeui <- renderUI({                                                    
             if (input$Orderingptimechoosemethod=="MST") {
@@ -308,8 +363,8 @@ shinyServer(function(input, output,session) {
       output$Orderingptimezoominui <- renderUI({
             if (input$Orderingptimezoomintf && !is.null(Maindata$reduceres)) {
                   tagList(
-                        sliderInput("Orderingptimezoominxaxis","X-axis range",min=min(Maindata$reduceres[1,]),max=max(Maindata$reduceres[1,]),value=c(min(Maindata$reduceres[1,]),max(Maindata$reduceres[1,]))),
-                        sliderInput("Orderingptimezoominyaxis","Y-axis range",min=min(Maindata$reduceres[2,]),max=max(Maindata$reduceres[2,]),value=c(min(Maindata$reduceres[2,]),max(Maindata$reduceres[2,])))
+                        sliderInput("Orderingptimezoominxaxis","X-axis range",min=min(Maindata$fullreduceres[1,]),max=max(Maindata$fullreduceres[1,]),value=c(min(Maindata$fullreduceres[1,]),max(Maindata$fullreduceres[1,]))),
+                        sliderInput("Orderingptimezoominyaxis","Y-axis range",min=min(Maindata$fullreduceres[2,]),max=max(Maindata$fullreduceres[2,]),value=c(min(Maindata$fullreduceres[2,]),max(Maindata$fullreduceres[2,])))
                   )
             }
       })
@@ -369,11 +424,11 @@ shinyServer(function(input, output,session) {
       })
       
       output$OrderingMSTmarkerui <- renderUI({
-            selectInput("OrderingMSTmarker","select marker gene used for node size",choices = row.names(Maindata$procdata))
+            selectInput("OrderingMSTmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
       })
       
       output$OrderingTSPmarkerui <- renderUI({
-            selectInput("OrderingTSPmarker","select marker gene used for node size",choices = row.names(Maindata$procdata))
+            selectInput("OrderingTSPmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
       })
       
       output$OrderingMSTrootcellui <- renderUI({
@@ -413,7 +468,7 @@ shinyServer(function(input, output,session) {
             colnames(diam) <- c("sample_name")
             diam <- arrange(merge(ica_space_with_state_df, diam, by.x = "sample_name", by.y = "sample_name"), Pseudotime)
             if (!is.null(markers)) {
-                  markers_exprs <- data.frame(value=Maindata$procdata[markers, ])
+                  markers_exprs <- data.frame(value=Maindata$rawlogdata[markers, ])
                   edge_df <- merge(edge_df, markers_exprs, by.x = "sample_name", by.y = "row.names")
                   g <- ggplot(data = edge_df, aes(x = source_ICA_dim_1, y = source_ICA_dim_2, size = log10(value + 0.1)))
             } else {
@@ -437,11 +492,16 @@ shinyServer(function(input, output,session) {
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
                   labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
-                                                                    legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
+                                                                                  legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
                   theme(panel.background = element_rect(fill = "white"))
             
-            if (input$Orderingptimezoomintf)
+            if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
+            } else {
+                  sc1 <- 0.05 * (max(Maindata$fullreduceres[1,])-min(Maindata$fullreduceres[1,]))
+                  sc2 <- 0.05 * (max(Maindata$fullreduceres[2,])-min(Maindata$fullreduceres[2,]))
+                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[1,]) - sc1, max(Maindata$fullreduceres[1,])+sc1),ylim=c(min(Maindata$fullreduceres[2,])-sc2, max(Maindata$fullreduceres[2,])+sc2))                  
+            }                  
             g 
       }
       
@@ -475,7 +535,7 @@ shinyServer(function(input, output,session) {
             edge_df <- merge(edge_df, ica_space_with_state_df[, c("sample_name", "ICA_dim_1", "ICA_dim_2")], by.x = "target", by.y = "sample_name", all = TRUE)
             edge_df <- rename(edge_df, c(ICA_dim_1 = "target_ICA_dim_1", ICA_dim_2 = "target_ICA_dim_2"))
             if (!is.null(markers)) {
-                  markers_exprs <- data.frame(value=Maindata$procdata[markers, ])
+                  markers_exprs <- data.frame(value=Maindata$rawlogdata[markers, ])
                   edge_df <- merge(edge_df, markers_exprs, by.x = "sample_name", by.y = "row.names")
                   g <- ggplot(data = edge_df, aes(x = source_ICA_dim_1, y = source_ICA_dim_2, size = log10(value + 0.1)))
             } else {
@@ -492,11 +552,16 @@ shinyServer(function(input, output,session) {
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
                   labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
-                                                                    legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
+                                                                                  legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
                   theme(panel.background = element_rect(fill = "white"))
             
-            if (input$Orderingptimezoomintf)
+            if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
+            } else {
+                  sc1 <- 0.05 * (max(Maindata$fullreduceres[1,])-min(Maindata$fullreduceres[1,]))
+                  sc2 <- 0.05 * (max(Maindata$fullreduceres[2,])-min(Maindata$fullreduceres[2,]))
+                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[1,]) - sc1, max(Maindata$fullreduceres[1,])+sc1),ylim=c(min(Maindata$fullreduceres[2,])-sc2, max(Maindata$fullreduceres[2,])+sc2))
+            }  
             g       
       }
       
@@ -569,16 +634,7 @@ shinyServer(function(input, output,session) {
                   for (i in unique(Maindata$startgeneset$genesetname)) {
                         tmp <- Maindata$startgeneset[Maindata$startgeneset$genesetname == i,]             
                         if (tmp[1,2] != "No") {
-                              tmpexpr <- Maindata$rawdata[tmp[,1],,drop=F]
-                              if (input$Preprocesslogtf) {
-                                    if (input$Preprocesslogbase == "2") {
-                                          tmpexpr <- log2(tmpexpr+as.numeric(input$Preprocesslogpseudocount))
-                                    } else if (input$Preprocesslogbase == "10") {
-                                          tmpexpr <- log10(tmpexpr+as.numeric(input$Preprocesslogpseudocount))
-                                    } else if (input$Preprocesslogbase == "e") {
-                                          tmpexpr <- log(tmpexpr+as.numeric(input$Preprocesslogpseudocount))
-                                    }
-                              }    
+                              tmpexpr <- Maindata$rawlogdata[tmp[,1],,drop=F]
                               if (input$Orderingstartscalegeneset)
                                     tmpexpr <- t(scale(t(tmpexpr)))
                               tmpexpr <- colMeans(tmpexpr)
@@ -614,7 +670,7 @@ shinyServer(function(input, output,session) {
                   pdata <- pdata[order,]
                   datadist <- dist(t(Maindata$reduceres))
                   distmat <- as.matrix(datadist)
-                  alldist <- sapply(1:(ncol(Maindata$procdata)-1), function(x) {
+                  alldist <- sapply(1:(nrow(pdata)-1), function(x) {
                         distmat[pdata[x,1],pdata[x+1,1]]
                   })
                   ptime <- c(0,cumsum(alldist))
@@ -628,6 +684,7 @@ shinyServer(function(input, output,session) {
             if (input$Orderingchoosestep=='start' && !is.null(Maindata$pdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
                   pdata <- Maindata$pdata[,-2]
                   pdata <- pdata[order(pdata$Pseudotime),]
+                  print(str(pdata))
                   if (is.null(Maindata$decreaseexpr)) {
                         allexpr <- Maindata$increaseexpr
                   } else {
@@ -635,7 +692,7 @@ shinyServer(function(input, output,session) {
                   }
                   allres <- NULL
                   for (flip in c(TRUE,FALSE)) {
-                        for (start in 1:ncol(Maindata$procdata)) {
+                        for (start in 1:nrow(pdata)) {
                               if (start == 1) {
                                     order <- 1:nrow(pdata)
                               } else {
@@ -663,7 +720,7 @@ shinyServer(function(input, output,session) {
                   if (nrow(allexpr) == 1) {
                         plot(allexpr[,Maindata$scapdata[,1]])
                   } else {
-                        image(t(allexpr[,Maindata$scapdata[,1]]),axes=F)      
+                        image(t(allexpr[,Maindata$scapdata[,1]]),axes=F,col=bluered(100))      
                         names <- rev(row.names(allexpr))
                         dim <- length(names)
                         pos <- seq(0,1,length.out=dim)
@@ -713,7 +770,7 @@ shinyServer(function(input, output,session) {
                         textInput("Orderingsaveplotchangetitle","Change title",value="Pseudotime ordering plot"),
                         textInput("Orderingsaveplotchangexlab","Change x axis title",value="Component 2"),
                         textInput("Orderingsaveplotchangeylab","Change y axis title",value="Component 1")
-                        )                  
+                  )                  
             }
       })
       
@@ -768,17 +825,17 @@ shinyServer(function(input, output,session) {
       
       observe({
             if (input$MainMenu=="Changepoint") {
-            if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata) && !is.null(input$Changepointpdataselect)) {
-                  if (input$Changepointpdataselect == 'Uploaded') {
+                  if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata) && !is.null(input$Changepointpdataselect)) {
+                        if (input$Changepointpdataselect == 'Uploaded') {
+                              Maindata$finalpdata <- Maindata$uploadpdata
+                        } else {
+                              Maindata$finalpdata <- Maindata$scapdata
+                        }
+                  } else if (!is.null(Maindata$uploadpdata) && is.null(Maindata$scapdata)) {
                         Maindata$finalpdata <- Maindata$uploadpdata
-                  } else {
+                  } else if (is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata)) {
                         Maindata$finalpdata <- Maindata$scapdata
-                  }
-            } else if (!is.null(Maindata$uploadpdata) && is.null(Maindata$scapdata)) {
-                  Maindata$finalpdata <- Maindata$uploadpdata
-            } else if (is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata)) {
-                  Maindata$finalpdata <- Maindata$scapdata
-            }            
+                  }            
             }
       })
       
@@ -873,107 +930,143 @@ shinyServer(function(input, output,session) {
             }            
       })
       
+      ###  Miscellaneous ###
       
+      Miscdata <- reactiveValues()
       
+      output$Miscshowresultsui <- renderUI({
+            if (input$Compareinputopt=='sub') {
+                  tagList(
+                        checkboxInput("Miscsubshowinstructiontf","Show instructions",value=T),
+                        uiOutput("Miscsubshowinstruction"),
+                        dataTableOutput("Miscsubshowtable")
+                  )
+            } else {
+                  tabsetPanel(
+                        tabPanel("Current order",
+                                 checkboxInput("Miscordershowinstructiontf","Show instructions",value=T),
+                                 uiOutput("Miscordershowinstruction"),
+                                 tableOutput("Miscordershowtable")
+                        ),
+                        tabPanel("Ordering scores",
+                                 tableOutput("Miscordershowscores")
+                        ),
+                        tabPanel("All order",
+                                 tableOutput("Miscordershowalltable")                                 
+                        )                        
+                  )
+            }            
+      })
       
+      output$Miscsubshowtable <- renderDataTable({
+            Miscdata$sub
+      })
       
-      
-      
-      
-      loessFit <- function (y, x, weights = NULL, span = 0.5, iterations = 4L, 
-                            min.weight = 1e-05, max.weight = 1e+05, equal.weights.as.null = TRUE, 
-                            method = "weightedLowess") {
-            n <- length(y)
-            if (length(x) != n) 
-                  stop("y and x have different lengths")
-            out <- list(fitted = rep(NA, n), residuals = rep(NA, n))
-            obs <- is.finite(y) & is.finite(x)
-            xobs <- x[obs]
-            yobs <- y[obs]
-            nobs <- length(yobs)
-            if (nobs == 0) 
-                  return(out)
-            if (span < 1/nobs) {
-                  out$fitted[obs] <- y[obs]
-                  out$residuals[obs] <- 0
-                  return(out)
+      output$Miscsubshowinstruction <- renderUI({
+            if (input$Miscsubshowinstructiontf) {
+                  tagList(
+                        h5("Instructions:"),
+                        p("Sub-population information should be prepared in a data.frame. The first column is the cell name and the second column is the subpopulation id."),
+                        p("Sub-population id could only be 0 and 1. 0 stands for subpopulation collected at an early time point and 1 stands for subpopulaiton collected at a latter time point"),
+                        p("Please make sure the data is correctly read in before any further analysis is conducted. Adjust the options on the left to make changes."),
+                        h5("A typical example of tab-delimited file format is as follows:"),
+                        p("Cell  ID"),
+                        p("Cell1  0"),
+                        p("Cell2  1"),
+                        p("Cell3  1")                      
+                  )
             }
-            if (min.weight < 0) 
-                  min.weight <- 0
-            if (!is.null(weights)) {
-                  if (length(weights) != n) 
-                        stop("y and weights have different lengths")
-                  wobs <- weights[obs]
-                  wobs[is.na(wobs)] <- 0
-                  wobs <- pmax(wobs, min.weight)
-                  wobs <- pmin(wobs, max.weight)
-                  if (equal.weights.as.null) {
-                        r <- range(wobs)
-                        if (r[2] - r[1] < 1e-15) 
-                              weights <- NULL
-                  }
+      })
+      
+      observe({
+            if (input$Comparesubreadin > 0)
+                  isolate({
+                        FileHandle <- input$ComparesubFile
+                        if (!is.null(FileHandle)) {
+                              Miscdata$sub <- read.table(FileHandle$datapath,header=input$Comparesubheader,sep=input$Comparesubsep,quote=input$Comparesubquote,stringsAsFactors=F,blank.lines.skip=TRUE)
+                        }
+                  })
+      })
+      
+      output$Miscordershowtable <- renderTable({
+            Miscdata$order
+      })
+      
+      output$Miscordershowalltable <- renderTable({
+            tmp <- sapply(Miscdata$allorder,cbind)
+            colnames(tmp) <- Miscdata$allordername
+            tmp
+      })
+      
+      output$Miscordershowscores <- renderTable({
+            subinfo <- Miscdata$sub[,2]
+            names(subinfo) <- Miscdata$sub[,1]
+            scorefunc <- function(order) {
+                  scoreorder <- subinfo[order]
+                  sum(sapply(1:(length(scoreorder)-1),function(x) {
+                        sum(scoreorder[(x+1):length(scoreorder)] - scoreorder[x])
+                  })) / (sum(scoreorder==1)*sum(scoreorder==0))
+            }      
+            data.frame(order = Miscdata$allordername, score = sapply(Miscdata$allorder,scorefunc))
+            
+      })
+      
+      output$Miscordershowinstruction <- renderUI({
+            if (input$Miscordershowinstructiontf) {
+                  tagList(
+                        h5("Instructions:"),
+                        p("order information should be prepared in a data.frame with one column. The first column is the ordered cell name. If the data has multiple columns, other columns will be omitted."),
+                        p("Please make sure that the cell names agree exactly with the cell names given in the subpopulation information, otherwise unpredictable errors may occur."),
+                        p("Please make sure the data is correctly read in before any further analysis is conducted. Adjust the options on the left to make changes."),
+                        h5("A typical example of tab-delimited file format is as follows:"),
+                        p("Cell"),
+                        p("Cell3"),
+                        p("Cell1"),
+                        p("Cell2")                      
+                  )
             }
-            if (is.null(weights)) {
-                  o <- order(xobs)
-                  lo <- lowess(x = xobs, y = yobs, f = span, iter = iterations - 
-                                     1L)
-                  out$fitted[obs][o] <- lo$y
-                  out$residuals[obs] <- yobs - out$fitted[obs]
-                  return(out)
+      })
+      
+      observe({
+            if (input$Compareorderreadin > 0)
+                  isolate({
+                        FileHandle <- input$CompareorderFile
+                        if (!is.null(FileHandle)) {
+                              Miscdata$order <- read.table(FileHandle$datapath,header=input$Compareorderheader,sep=input$Compareordersep,quote=input$Compareorderquote,stringsAsFactors=F,blank.lines.skip=TRUE)
+                        }
+                  })
+      })
+      
+      observe({
+            if (input$Compareorderadddata && input$Compareorderadddata > 0) {
+                  isolate({
+                        tmporder <- as.vector(Miscdata$order[,1])
+                        if (is.null(Miscdata$allorder)) {
+                              Miscdata$allorder <- list(tmporder)
+                              Miscdata$allordername <- input$Compareordername
+                        } else {
+                              Miscdata$allorder <- c(Miscdata$allorder, list(tmporder))
+                              Miscdata$allordername <- c(Miscdata$allordername,input$Compareordername)
+                        }                        
+                  })                  
+            }                        
+      })
+      
+      output$compareordernameui <- renderUI({
+            if (is.null(Miscdata$allorder)) {
+                  textInput("Compareordername","Input name for order","Order_1")            
+            } else {
+                  textInput("Compareordername","Input name for order",paste0("Order_",length(Miscdata$allorder)+1))
             }
-            if (min.weight > 0) 
-                  nwobs <- nobs
-            else nwobs <- sum(wobs > 0)
-            if (nwobs < 4 + 1/span) {
-                  if (nwobs == 1L) {
-                        out$fitted[obs] <- yobs[wobs > 0]
-                        out$residuals[obs] <- yobs - out$fitted[obs]
-                  }
-                  else {
-                        fit <- lm.wfit(cbind(1, xobs), yobs, wobs)
-                        out$fitted[obs] <- fit$fitted
-                        out$residuals[obs] <- fit$residuals
-                  }
-                  return(out)
-            }
-            method <- match.arg(method, c("weightedLowess", "locfit", 
-                                          "loess"))
-            switch(method, weightedLowess = {
-                  fit <- weightedLowess(x = xobs, y = yobs, weights = wobs, 
-                                        span = span, iterations = iterations, npts = 200)
-                  out$fitted[obs] <- fit$fitted
-                  out$residuals[obs] <- fit$residuals
-            }, locfit = {
-                  loaded <- ("package:locfit" %in% search())
-                  if (!loaded) {
-                        loadresult <- tryCatch(suppressPackageStartupMessages(library("locfit", 
-                                                                                      character.only = TRUE, quietly = TRUE)), error = function(e) e)
-                        if (inherits(loadresult, "error")) stop("locfit package not available", 
-                                                                call. = FALSE)
-                  }
-                  biweights <- rep(1, nobs)
-                  for (i in 1:iterations) {
-                        fit <- locfit.raw(x = xobs, y = yobs, weights = wobs * 
-                                                biweights, alpha = span, deg = 1)
-                        res <- residuals(fit, type = "raw")
-                        s <- median(abs(res))
-                        biweights <- pmax(1 - (res/(6 * s))^2, 0)^2
-                  }
-                  out$fitted[obs] <- fitted(fit)
-                  out$residuals[obs] <- res
-            }, loess = {
-                  oldopt <- options(warn = -1)
-                  on.exit(options(oldopt))
-                  bin <- 0.01
-                  fit <- loess(yobs ~ xobs, weights = wobs, span = span, 
-                               degree = 1, parametric = FALSE, normalize = FALSE, 
-                               statistics = "approximate", surface = "interpolate", 
-                               cell = bin/span, iterations = iterations, trace.hat = "approximate")
-                  out$fitted[obs] <- fit$fitted
-                  out$residuals[obs] <- fit$residuals
-            })
-            out
-      }
+      })
+      
+      
+      
+      
+      
+      
+      
+      
       
       
       
@@ -990,398 +1083,398 @@ shinyServer(function(input, output,session) {
       
       ###monocle internal functions
 {
-      get_next_node_id <- function () {
-            next_node <<- next_node + 1
-            return(next_node)
-      }
-      
-      pq_helper <- function (mst, use_weights = TRUE, root_node = NULL) {
-            new_subtree <- graph.empty()
-            root_node_id <- paste("Q_", get_next_node_id(), sep = "")
-            new_subtree <- new_subtree + vertex(root_node_id, type = "Q", 
-                                                color = "black")
-            if (is.null(root_node) == FALSE) {
-                  sp <- get.all.shortest.paths(mst, from = V(mst)[root_node])
-                  sp_lengths <- sapply(sp$res, length)
-                  target_node_idx <- which(sp_lengths == max(sp_lengths))[1]
-                  diam <- V(mst)[unlist(sp$res[target_node_idx])]
+            get_next_node_id <- function () {
+                  next_node <<- next_node + 1
+                  return(next_node)
             }
-            else {
-                  if (use_weights) {
-                        diam <- V(mst)[get.diameter(mst)]
+            
+            pq_helper <- function (mst, use_weights = TRUE, root_node = NULL) {
+                  new_subtree <- graph.empty()
+                  root_node_id <- paste("Q_", get_next_node_id(), sep = "")
+                  new_subtree <- new_subtree + vertex(root_node_id, type = "Q", 
+                                                      color = "black")
+                  if (is.null(root_node) == FALSE) {
+                        sp <- get.all.shortest.paths(mst, from = V(mst)[root_node])
+                        sp_lengths <- sapply(sp$res, length)
+                        target_node_idx <- which(sp_lengths == max(sp_lengths))[1]
+                        diam <- V(mst)[unlist(sp$res[target_node_idx])]
                   }
                   else {
-                        diam <- V(mst)[get.diameter(mst, weights = NA)]
+                        if (use_weights) {
+                              diam <- V(mst)[get.diameter(mst)]
+                        }
+                        else {
+                              diam <- V(mst)[get.diameter(mst, weights = NA)]
+                        }
+                  }
+                  V(new_subtree)[root_node_id]$diam_path_len = length(diam)
+                  diam_decisiveness <- igraph::degree(mst, v = diam) > 2
+                  ind_nodes <- diam_decisiveness[diam_decisiveness == TRUE]
+                  first_diam_path_node_idx <- head(as.vector(diam), n = 1)
+                  last_diam_path_node_idx <- tail(as.vector(diam), n = 1)
+                  if (sum(ind_nodes) == 0 || (igraph::degree(mst, first_diam_path_node_idx) == 
+                                                    1 && igraph::degree(mst, last_diam_path_node_idx) == 
+                                                    1)) {
+                        ind_backbone <- diam
+                  }
+                  else {
+                        last_bb_point <- names(tail(ind_nodes, n = 1))[[1]]
+                        first_bb_point <- names(head(ind_nodes, n = 1))[[1]]
+                        diam_path_names <- V(mst)[as.vector(diam)]$name
+                        last_bb_point_idx <- which(diam_path_names == last_bb_point)[1]
+                        first_bb_point_idx <- which(diam_path_names == first_bb_point)[1]
+                        ind_backbone_idxs <- as.vector(diam)[first_bb_point_idx:last_bb_point_idx]
+                        ind_backbone <- V(mst)[ind_backbone_idxs]
+                  }
+                  mst_no_backbone <- mst - ind_backbone
+                  for (backbone_n in ind_backbone) {
+                        if (igraph::degree(mst, v = backbone_n) > 2) {
+                              new_p_id <- paste("P_", get_next_node_id(), sep = "")
+                              new_subtree <- new_subtree + vertex(new_p_id, type = "P", 
+                                                                  color = "grey")
+                              new_subtree <- new_subtree + vertex(V(mst)[backbone_n]$name, 
+                                                                  type = "leaf", color = "white")
+                              new_subtree <- new_subtree + edge(new_p_id, V(mst)[backbone_n]$name)
+                              new_subtree <- new_subtree + edge(root_node_id, new_p_id)
+                              nb <- graph.neighborhood(mst, 1, nodes = backbone_n)[[1]]
+                              for (n_i in V(nb)) {
+                                    n <- V(nb)[n_i]$name
+                                    if (n %in% V(mst_no_backbone)$name) {
+                                          sc <- subcomponent(mst_no_backbone, n)
+                                          sg <- induced.subgraph(mst_no_backbone, sc, 
+                                                                 impl = "copy_and_delete")
+                                          if (ecount(sg) > 0) {
+                                                sub_pq <- pq_helper(sg, use_weights)
+                                                for (v in V(sub_pq$subtree)) {
+                                                      new_subtree <- new_subtree + vertex(V(sub_pq$subtree)[v]$name, 
+                                                                                          type = V(sub_pq$subtree)[v]$type, color = V(sub_pq$subtree)[v]$color, 
+                                                                                          diam_path_len = V(sub_pq$subtree)[v]$diam_path_len)
+                                                }
+                                                edge_list <- get.edgelist(sub_pq$subtree)
+                                                for (i in 1:nrow(edge_list)) {
+                                                      new_subtree <- new_subtree + edge(V(sub_pq$subtree)[edge_list[i, 
+                                                                                                                    1]]$name, V(sub_pq$subtree)[edge_list[i, 
+                                                                                                                                                          2]]$name)
+                                                }
+                                                new_subtree <- new_subtree + edge(new_p_id, 
+                                                                                  V(sub_pq$subtree)[sub_pq$root]$name)
+                                          }
+                                          else {
+                                                new_subtree <- new_subtree + vertex(n, type = "leaf", 
+                                                                                    color = "white")
+                                                new_subtree <- new_subtree + edge(new_p_id, 
+                                                                                  n)
+                                          }
+                                    }
+                              }
+                        }
+                        else {
+                              new_subtree <- new_subtree + vertex(V(mst)[backbone_n]$name, 
+                                                                  type = "leaf", color = "white")
+                              new_subtree <- new_subtree + edge(root_node_id, V(mst)[backbone_n]$name)
+                        }
+                  }
+                  return(list(root = root_node_id, subtree = new_subtree))
+            }
+            
+            order_p_node <- function (q_level_list, dist_matrix) {
+                  q_order_res <- permn(q_level_list, fun = order_q_node, dist_matrix)
+                  all_perms <- lapply(q_order_res, function(x) {
+                        x$ql
+                  })
+                  all_perms_weights <- unlist(lapply(q_order_res, function(x) {
+                        x$wt
+                  }))
+                  opt_perm_idx <- head((which(all_perms_weights == min(all_perms_weights))), 
+                                       1)
+                  opt_perm <- all_perms[[opt_perm_idx]]
+                  stopifnot(length(opt_perm) == length(q_level_list))
+                  return(opt_perm)
+            }
+            
+            order_q_node <- function (q_level_list, dist_matrix) {
+                  new_subtree <- graph.empty()
+                  if (length(q_level_list) == 1) {
+                        return(list(ql = q_level_list, wt = 0))
+                  }
+                  for (i in 1:length(q_level_list)) {
+                        new_subtree <- new_subtree + vertex(paste(i, "F"), type = "forward")
+                        new_subtree <- new_subtree + vertex(paste(i, "R"), type = "reverse")
+                  }
+                  for (i in (1:(length(q_level_list) - 1))) {
+                        cost <- dist_matrix[q_level_list[[i]][length(q_level_list[[i]])], 
+                                            q_level_list[[i + 1]][1]]
+                        new_subtree <- new_subtree + edge(paste(i, "F"), paste(i + 
+                                                                                     1, "F"), weight = cost)
+                        cost <- dist_matrix[q_level_list[[i]][length(q_level_list[[i]])], 
+                                            q_level_list[[i + 1]][length(q_level_list[[i + 1]])]]
+                        new_subtree <- new_subtree + edge(paste(i, "F"), paste(i + 
+                                                                                     1, "R"), weight = cost)
+                        cost <- dist_matrix[q_level_list[[i]][1], q_level_list[[i + 
+                                                                                      1]][1]]
+                        new_subtree <- new_subtree + edge(paste(i, "R"), paste(i + 
+                                                                                     1, "F"), weight = cost)
+                        cost <- dist_matrix[q_level_list[[i]][1], q_level_list[[i + 
+                                                                                      1]][length(q_level_list[[i + 1]])]]
+                        new_subtree <- new_subtree + edge(paste(i, "R"), paste(i + 
+                                                                                     1, "R"), weight = cost)
+                  }
+                  first_fwd = V(new_subtree)[paste(1, "F")]
+                  first_rev = V(new_subtree)[paste(1, "R")]
+                  last_fwd = V(new_subtree)[paste(length(q_level_list), "F")]
+                  last_rev = V(new_subtree)[paste(length(q_level_list), "R")]
+                  FF_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_fwd), 
+                                                       to = as.vector(last_fwd), mode = "out", output = "vpath")$vpath)
+                  FR_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_fwd), 
+                                                       to = as.vector(last_rev), mode = "out", output = "vpath")$vpath)
+                  RF_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_rev), 
+                                                       to = as.vector(last_fwd), mode = "out", output = "vpath")$vpath)
+                  RR_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_rev), 
+                                                       to = as.vector(last_rev), mode = "out", output = "vpath")$vpath)
+                  FF_weight <- sum(E(new_subtree, path = FF_path)$weight)
+                  FR_weight <- sum(E(new_subtree, path = FR_path)$weight)
+                  RF_weight <- sum(E(new_subtree, path = RF_path)$weight)
+                  RR_weight <- sum(E(new_subtree, path = RR_path)$weight)
+                  paths <- list(FF_path, FR_path, RF_path, RR_path)
+                  path_weights <- c(FF_weight, FR_weight, RF_weight, RR_weight)
+                  opt_path_idx <- head((which(path_weights == min(path_weights))), 
+                                       1)
+                  opt_path <- paths[[opt_path_idx]]
+                  stopifnot(length(opt_path) == length(q_level_list))
+                  directions <- V(new_subtree)[opt_path]$type
+                  q_levels <- list()
+                  for (i in 1:length(directions)) {
+                        if (directions[[i]] == "forward") {
+                              q_levels[[length(q_levels) + 1]] <- q_level_list[[i]]
+                        }
+                        else {
+                              q_levels[[length(q_levels) + 1]] <- rev(q_level_list[[i]])
+                        }
+                  }
+                  return(list(ql = q_levels, wt = min(path_weights)))
+            }
+            
+            assign_cell_lineage <- function (pq_tree, curr_node, assigned_state, node_states) {
+                  if (V(pq_tree)[curr_node]$type == "leaf") {
+                        node_states[V(pq_tree)[curr_node]$name] = assigned_state
+                        return(node_states)
+                  }
+                  else {
+                        for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
+                              node_states <- assign_cell_lineage(pq_tree, child, 
+                                                                 assigned_state, node_states)
+                        }
+                        return(node_states)
                   }
             }
-            V(new_subtree)[root_node_id]$diam_path_len = length(diam)
-            diam_decisiveness <- igraph::degree(mst, v = diam) > 2
-            ind_nodes <- diam_decisiveness[diam_decisiveness == TRUE]
-            first_diam_path_node_idx <- head(as.vector(diam), n = 1)
-            last_diam_path_node_idx <- tail(as.vector(diam), n = 1)
-            if (sum(ind_nodes) == 0 || (igraph::degree(mst, first_diam_path_node_idx) == 
-                                              1 && igraph::degree(mst, last_diam_path_node_idx) == 
-                                              1)) {
-                  ind_backbone <- diam
+            
+            extract_good_ordering <- function (pq_tree, curr_node, dist_matrix) {
+                  if (V(pq_tree)[curr_node]$type == "leaf") {
+                        return(V(pq_tree)[curr_node]$name)
+                  }
+                  else if (V(pq_tree)[curr_node]$type == "P") {
+                        p_level <- list()
+                        for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
+                              p_level[[length(p_level) + 1]] <- extract_good_ordering(pq_tree, 
+                                                                                      child, dist_matrix)
+                        }
+                        p_level <- order_p_node(p_level, dist_matrix)
+                        p_level <- unlist(p_level)
+                        return(p_level)
+                  }
+                  else if (V(pq_tree)[curr_node]$type == "Q") {
+                        q_level <- list()
+                        for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
+                              q_level[[length(q_level) + 1]] <- extract_good_ordering(pq_tree, 
+                                                                                      child, dist_matrix)
+                        }
+                        q_level <- order_q_node(q_level, dist_matrix)
+                        q_level <- q_level$ql
+                        q_level <- unlist(q_level)
+                        return(q_level)
+                  }
             }
-            else {
-                  last_bb_point <- names(tail(ind_nodes, n = 1))[[1]]
-                  first_bb_point <- names(head(ind_nodes, n = 1))[[1]]
-                  diam_path_names <- V(mst)[as.vector(diam)]$name
-                  last_bb_point_idx <- which(diam_path_names == last_bb_point)[1]
-                  first_bb_point_idx <- which(diam_path_names == first_bb_point)[1]
-                  ind_backbone_idxs <- as.vector(diam)[first_bb_point_idx:last_bb_point_idx]
-                  ind_backbone <- V(mst)[ind_backbone_idxs]
+            
+            weight_of_ordering <- function (ordering, dist_matrix) {
+                  time_delta <- c(0)
+                  curr_weight <- 0
+                  ep <- 0.01
+                  for (i in 2:length(ordering)) {
+                        d <- dist_matrix[ordering[[i]], ordering[[i - 1]]]
+                        curr_weight <- curr_weight + d + ep
+                        time_delta <- c(time_delta, curr_weight)
+                  }
+                  return(time_delta)
             }
-            mst_no_backbone <- mst - ind_backbone
-            for (backbone_n in ind_backbone) {
-                  if (igraph::degree(mst, v = backbone_n) > 2) {
-                        new_p_id <- paste("P_", get_next_node_id(), sep = "")
-                        new_subtree <- new_subtree + vertex(new_p_id, type = "P", 
-                                                            color = "grey")
-                        new_subtree <- new_subtree + vertex(V(mst)[backbone_n]$name, 
-                                                            type = "leaf", color = "white")
-                        new_subtree <- new_subtree + edge(new_p_id, V(mst)[backbone_n]$name)
-                        new_subtree <- new_subtree + edge(root_node_id, new_p_id)
-                        nb <- graph.neighborhood(mst, 1, nodes = backbone_n)[[1]]
-                        for (n_i in V(nb)) {
-                              n <- V(nb)[n_i]$name
-                              if (n %in% V(mst_no_backbone)$name) {
-                                    sc <- subcomponent(mst_no_backbone, n)
-                                    sg <- induced.subgraph(mst_no_backbone, sc, 
-                                                           impl = "copy_and_delete")
-                                    if (ecount(sg) > 0) {
-                                          sub_pq <- pq_helper(sg, use_weights)
-                                          for (v in V(sub_pq$subtree)) {
-                                                new_subtree <- new_subtree + vertex(V(sub_pq$subtree)[v]$name, 
-                                                                                    type = V(sub_pq$subtree)[v]$type, color = V(sub_pq$subtree)[v]$color, 
-                                                                                    diam_path_len = V(sub_pq$subtree)[v]$diam_path_len)
-                                          }
-                                          edge_list <- get.edgelist(sub_pq$subtree)
-                                          for (i in 1:nrow(edge_list)) {
-                                                new_subtree <- new_subtree + edge(V(sub_pq$subtree)[edge_list[i, 
-                                                                                                              1]]$name, V(sub_pq$subtree)[edge_list[i, 
-                                                                                                                                                    2]]$name)
-                                          }
-                                          new_subtree <- new_subtree + edge(new_p_id, 
-                                                                            V(sub_pq$subtree)[sub_pq$root]$name)
+            
+            extract_good_branched_ordering <- function (orig_pq_tree, curr_node, dist_matrix, num_branches, 
+                                                        reverse_main_path = FALSE) {
+                  pq_tree <- orig_pq_tree
+                  branch_node_counts <- V(pq_tree)[type == "Q"]$diam_path_len
+                  names(branch_node_counts) <- V(pq_tree)[type == "Q"]$name
+                  branch_node_counts <- sort(branch_node_counts, decreasing = TRUE)
+                  cell_states <- rep(NA, length(as.vector(V(pq_tree)[type == 
+                                                                           "leaf"])))
+                  names(cell_states) <- V(pq_tree)[type == "leaf"]$name
+                  cell_states <- assign_cell_lineage(pq_tree, curr_node, 1, 
+                                                     cell_states)
+                  branch_point_roots <- list()
+                  branch_tree <- graph.empty()
+                  for (i in 1:num_branches) {
+                        branch_point_roots[[length(branch_point_roots) + 1]] <- names(branch_node_counts)[i]
+                        branch_id <- names(branch_node_counts)[i]
+                        branch_tree <- branch_tree + vertex(branch_id)
+                        parents <- V(pq_tree)[nei(names(branch_node_counts)[i], 
+                                                  mode = "in")]
+                        if (length(parents) > 0 && parents$type == "P") {
+                              p_node_parent <- V(pq_tree)[nei(names(branch_node_counts)[i], 
+                                                              mode = "in")]
+                              parent_branch_id <- V(pq_tree)[nei(p_node_parent, 
+                                                                 mode = "in")]$name
+                              branch_tree <- branch_tree + edge(parent_branch_id, 
+                                                                branch_id)
+                        }
+                        pq_tree[V(pq_tree)[nei(names(branch_node_counts)[i], 
+                                               mode = "in")], names(branch_node_counts)[i]] <- FALSE
+                  }
+                  branch_pseudotimes <- list()
+                  for (i in 1:length(branch_point_roots)) {
+                        branch_ordering <- extract_good_ordering(pq_tree, branch_point_roots[[i]], 
+                                                                 dist_matrix)
+                        branch_ordering_time <- weight_of_ordering(branch_ordering, 
+                                                                   dist_matrix)
+                        names(branch_ordering_time) <- branch_ordering
+                        branch_pseudotimes[[length(branch_pseudotimes) + 1]] = branch_ordering_time
+                        names(branch_pseudotimes)[length(branch_pseudotimes)] = branch_point_roots[[i]]
+                  }
+                  cell_ordering_tree <- graph.empty()
+                  curr_branch <- "Q_1"
+                  extract_branched_ordering_helper <- function(branch_tree, 
+                                                               curr_branch, cell_ordering_tree, branch_pseudotimes, 
+                                                               dist_matrix, reverse_ordering = FALSE) {
+                        curr_branch_pseudotimes <- branch_pseudotimes[[curr_branch]]
+                        curr_branch_root_cell <- NA
+                        for (i in 1:length(curr_branch_pseudotimes)) {
+                              cell_ordering_tree <- cell_ordering_tree + vertex(names(curr_branch_pseudotimes)[i])
+                              if (i > 1) {
+                                    if (reverse_ordering == FALSE) {
+                                          cell_ordering_tree <- cell_ordering_tree + 
+                                                edge(names(curr_branch_pseudotimes)[i - 1], 
+                                                     names(curr_branch_pseudotimes)[i])
                                     }
                                     else {
-                                          new_subtree <- new_subtree + vertex(n, type = "leaf", 
-                                                                              color = "white")
-                                          new_subtree <- new_subtree + edge(new_p_id, 
-                                                                            n)
+                                          cell_ordering_tree <- cell_ordering_tree + 
+                                                edge(names(curr_branch_pseudotimes)[i], names(curr_branch_pseudotimes)[i - 
+                                                                                                                             1])
                                     }
                               }
                         }
-                  }
-                  else {
-                        new_subtree <- new_subtree + vertex(V(mst)[backbone_n]$name, 
-                                                            type = "leaf", color = "white")
-                        new_subtree <- new_subtree + edge(root_node_id, V(mst)[backbone_n]$name)
-                  }
-            }
-            return(list(root = root_node_id, subtree = new_subtree))
-      }
-      
-      order_p_node <- function (q_level_list, dist_matrix) {
-            q_order_res <- permn(q_level_list, fun = order_q_node, dist_matrix)
-            all_perms <- lapply(q_order_res, function(x) {
-                  x$ql
-            })
-            all_perms_weights <- unlist(lapply(q_order_res, function(x) {
-                  x$wt
-            }))
-            opt_perm_idx <- head((which(all_perms_weights == min(all_perms_weights))), 
-                                 1)
-            opt_perm <- all_perms[[opt_perm_idx]]
-            stopifnot(length(opt_perm) == length(q_level_list))
-            return(opt_perm)
-      }
-      
-      order_q_node <- function (q_level_list, dist_matrix) {
-            new_subtree <- graph.empty()
-            if (length(q_level_list) == 1) {
-                  return(list(ql = q_level_list, wt = 0))
-            }
-            for (i in 1:length(q_level_list)) {
-                  new_subtree <- new_subtree + vertex(paste(i, "F"), type = "forward")
-                  new_subtree <- new_subtree + vertex(paste(i, "R"), type = "reverse")
-            }
-            for (i in (1:(length(q_level_list) - 1))) {
-                  cost <- dist_matrix[q_level_list[[i]][length(q_level_list[[i]])], 
-                                      q_level_list[[i + 1]][1]]
-                  new_subtree <- new_subtree + edge(paste(i, "F"), paste(i + 
-                                                                               1, "F"), weight = cost)
-                  cost <- dist_matrix[q_level_list[[i]][length(q_level_list[[i]])], 
-                                      q_level_list[[i + 1]][length(q_level_list[[i + 1]])]]
-                  new_subtree <- new_subtree + edge(paste(i, "F"), paste(i + 
-                                                                               1, "R"), weight = cost)
-                  cost <- dist_matrix[q_level_list[[i]][1], q_level_list[[i + 
-                                                                                1]][1]]
-                  new_subtree <- new_subtree + edge(paste(i, "R"), paste(i + 
-                                                                               1, "F"), weight = cost)
-                  cost <- dist_matrix[q_level_list[[i]][1], q_level_list[[i + 
-                                                                                1]][length(q_level_list[[i + 1]])]]
-                  new_subtree <- new_subtree + edge(paste(i, "R"), paste(i + 
-                                                                               1, "R"), weight = cost)
-            }
-            first_fwd = V(new_subtree)[paste(1, "F")]
-            first_rev = V(new_subtree)[paste(1, "R")]
-            last_fwd = V(new_subtree)[paste(length(q_level_list), "F")]
-            last_rev = V(new_subtree)[paste(length(q_level_list), "R")]
-            FF_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_fwd), 
-                                                 to = as.vector(last_fwd), mode = "out", output = "vpath")$vpath)
-            FR_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_fwd), 
-                                                 to = as.vector(last_rev), mode = "out", output = "vpath")$vpath)
-            RF_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_rev), 
-                                                 to = as.vector(last_fwd), mode = "out", output = "vpath")$vpath)
-            RR_path <- unlist(get.shortest.paths(new_subtree, from = as.vector(first_rev), 
-                                                 to = as.vector(last_rev), mode = "out", output = "vpath")$vpath)
-            FF_weight <- sum(E(new_subtree, path = FF_path)$weight)
-            FR_weight <- sum(E(new_subtree, path = FR_path)$weight)
-            RF_weight <- sum(E(new_subtree, path = RF_path)$weight)
-            RR_weight <- sum(E(new_subtree, path = RR_path)$weight)
-            paths <- list(FF_path, FR_path, RF_path, RR_path)
-            path_weights <- c(FF_weight, FR_weight, RF_weight, RR_weight)
-            opt_path_idx <- head((which(path_weights == min(path_weights))), 
-                                 1)
-            opt_path <- paths[[opt_path_idx]]
-            stopifnot(length(opt_path) == length(q_level_list))
-            directions <- V(new_subtree)[opt_path]$type
-            q_levels <- list()
-            for (i in 1:length(directions)) {
-                  if (directions[[i]] == "forward") {
-                        q_levels[[length(q_levels) + 1]] <- q_level_list[[i]]
-                  }
-                  else {
-                        q_levels[[length(q_levels) + 1]] <- rev(q_level_list[[i]])
-                  }
-            }
-            return(list(ql = q_levels, wt = min(path_weights)))
-      }
-      
-      assign_cell_lineage <- function (pq_tree, curr_node, assigned_state, node_states) {
-            if (V(pq_tree)[curr_node]$type == "leaf") {
-                  node_states[V(pq_tree)[curr_node]$name] = assigned_state
-                  return(node_states)
-            }
-            else {
-                  for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
-                        node_states <- assign_cell_lineage(pq_tree, child, 
-                                                           assigned_state, node_states)
-                  }
-                  return(node_states)
-            }
-      }
-      
-      extract_good_ordering <- function (pq_tree, curr_node, dist_matrix) {
-            if (V(pq_tree)[curr_node]$type == "leaf") {
-                  return(V(pq_tree)[curr_node]$name)
-            }
-            else if (V(pq_tree)[curr_node]$type == "P") {
-                  p_level <- list()
-                  for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
-                        p_level[[length(p_level) + 1]] <- extract_good_ordering(pq_tree, 
-                                                                                child, dist_matrix)
-                  }
-                  p_level <- order_p_node(p_level, dist_matrix)
-                  p_level <- unlist(p_level)
-                  return(p_level)
-            }
-            else if (V(pq_tree)[curr_node]$type == "Q") {
-                  q_level <- list()
-                  for (child in V(pq_tree)[nei(curr_node, mode = "out")]) {
-                        q_level[[length(q_level) + 1]] <- extract_good_ordering(pq_tree, 
-                                                                                child, dist_matrix)
-                  }
-                  q_level <- order_q_node(q_level, dist_matrix)
-                  q_level <- q_level$ql
-                  q_level <- unlist(q_level)
-                  return(q_level)
-            }
-      }
-      
-      weight_of_ordering <- function (ordering, dist_matrix) {
-            time_delta <- c(0)
-            curr_weight <- 0
-            ep <- 0.01
-            for (i in 2:length(ordering)) {
-                  d <- dist_matrix[ordering[[i]], ordering[[i - 1]]]
-                  curr_weight <- curr_weight + d + ep
-                  time_delta <- c(time_delta, curr_weight)
-            }
-            return(time_delta)
-      }
-      
-      extract_good_branched_ordering <- function (orig_pq_tree, curr_node, dist_matrix, num_branches, 
-                                                  reverse_main_path = FALSE) {
-            pq_tree <- orig_pq_tree
-            branch_node_counts <- V(pq_tree)[type == "Q"]$diam_path_len
-            names(branch_node_counts) <- V(pq_tree)[type == "Q"]$name
-            branch_node_counts <- sort(branch_node_counts, decreasing = TRUE)
-            cell_states <- rep(NA, length(as.vector(V(pq_tree)[type == 
-                                                                     "leaf"])))
-            names(cell_states) <- V(pq_tree)[type == "leaf"]$name
-            cell_states <- assign_cell_lineage(pq_tree, curr_node, 1, 
-                                               cell_states)
-            branch_point_roots <- list()
-            branch_tree <- graph.empty()
-            for (i in 1:num_branches) {
-                  branch_point_roots[[length(branch_point_roots) + 1]] <- names(branch_node_counts)[i]
-                  branch_id <- names(branch_node_counts)[i]
-                  branch_tree <- branch_tree + vertex(branch_id)
-                  parents <- V(pq_tree)[nei(names(branch_node_counts)[i], 
-                                            mode = "in")]
-                  if (length(parents) > 0 && parents$type == "P") {
-                        p_node_parent <- V(pq_tree)[nei(names(branch_node_counts)[i], 
-                                                        mode = "in")]
-                        parent_branch_id <- V(pq_tree)[nei(p_node_parent, 
-                                                           mode = "in")]$name
-                        branch_tree <- branch_tree + edge(parent_branch_id, 
-                                                          branch_id)
-                  }
-                  pq_tree[V(pq_tree)[nei(names(branch_node_counts)[i], 
-                                         mode = "in")], names(branch_node_counts)[i]] <- FALSE
-            }
-            branch_pseudotimes <- list()
-            for (i in 1:length(branch_point_roots)) {
-                  branch_ordering <- extract_good_ordering(pq_tree, branch_point_roots[[i]], 
-                                                           dist_matrix)
-                  branch_ordering_time <- weight_of_ordering(branch_ordering, 
-                                                             dist_matrix)
-                  names(branch_ordering_time) <- branch_ordering
-                  branch_pseudotimes[[length(branch_pseudotimes) + 1]] = branch_ordering_time
-                  names(branch_pseudotimes)[length(branch_pseudotimes)] = branch_point_roots[[i]]
-            }
-            cell_ordering_tree <- graph.empty()
-            curr_branch <- "Q_1"
-            extract_branched_ordering_helper <- function(branch_tree, 
-                                                         curr_branch, cell_ordering_tree, branch_pseudotimes, 
-                                                         dist_matrix, reverse_ordering = FALSE) {
-                  curr_branch_pseudotimes <- branch_pseudotimes[[curr_branch]]
-                  curr_branch_root_cell <- NA
-                  for (i in 1:length(curr_branch_pseudotimes)) {
-                        cell_ordering_tree <- cell_ordering_tree + vertex(names(curr_branch_pseudotimes)[i])
-                        if (i > 1) {
-                              if (reverse_ordering == FALSE) {
-                                    cell_ordering_tree <- cell_ordering_tree + 
-                                          edge(names(curr_branch_pseudotimes)[i - 1], 
-                                               names(curr_branch_pseudotimes)[i])
+                        if (reverse_ordering == FALSE) {
+                              curr_branch_root_cell <- names(curr_branch_pseudotimes)[1]
+                        }
+                        else {
+                              curr_branch_root_cell <- names(curr_branch_pseudotimes)[length(curr_branch_pseudotimes)]
+                        }
+                        for (child in V(branch_tree)[nei(curr_branch, mode = "out")]) {
+                              child_cell_ordering_subtree <- graph.empty()
+                              child_head <- names(branch_pseudotimes[[child]])[1]
+                              child_tail <- names(branch_pseudotimes[[child]])[length(branch_pseudotimes[[child]])]
+                              curr_branch_cell_names <- names(branch_pseudotimes[[curr_branch]])
+                              head_dist_to_curr <- dist_matrix[child_head, curr_branch_cell_names]
+                              closest_to_head <- names(head_dist_to_curr)[which(head_dist_to_curr == 
+                                                                                      min(head_dist_to_curr))]
+                              head_dist_to_anchored_branch = NA
+                              branch_index_for_head <- NA
+                              head_dist_to_anchored_branch <- dist_matrix[closest_to_head, 
+                                                                          child_head]
+                              tail_dist_to_curr <- dist_matrix[child_tail, curr_branch_cell_names]
+                              closest_to_tail <- names(tail_dist_to_curr)[which(tail_dist_to_curr == 
+                                                                                      min(tail_dist_to_curr))]
+                              tail_dist_to_anchored_branch = NA
+                              branch_index_for_tail <- NA
+                              tail_dist_to_anchored_branch <- dist_matrix[closest_to_tail, 
+                                                                          child_tail]
+                              if (tail_dist_to_anchored_branch < head_dist_to_anchored_branch) {
+                                    reverse_child <- TRUE
                               }
                               else {
-                                    cell_ordering_tree <- cell_ordering_tree + 
-                                          edge(names(curr_branch_pseudotimes)[i], names(curr_branch_pseudotimes)[i - 
-                                                                                                                       1])
+                                    reverse_child <- FALSE
+                              }
+                              res <- extract_branched_ordering_helper(branch_tree, 
+                                                                      child, child_cell_ordering_subtree, branch_pseudotimes, 
+                                                                      dist_matrix, reverse_child)
+                              child_cell_ordering_subtree <- res$subtree
+                              child_subtree_root <- res$root
+                              for (v in V(child_cell_ordering_subtree)) {
+                                    cell_ordering_tree <- cell_ordering_tree + vertex(V(child_cell_ordering_subtree)[v]$name)
+                              }
+                              edge_list <- get.edgelist(child_cell_ordering_subtree)
+                              for (i in 1:nrow(edge_list)) {
+                                    cell_ordering_tree <- cell_ordering_tree + edge(V(cell_ordering_tree)[edge_list[i, 
+                                                                                                                    1]]$name, V(cell_ordering_tree)[edge_list[i, 
+                                                                                                                                                              2]]$name)
+                              }
+                              if (tail_dist_to_anchored_branch < head_dist_to_anchored_branch) {
+                                    cell_ordering_tree <- cell_ordering_tree + edge(closest_to_tail, 
+                                                                                    child_subtree_root)
+                              }
+                              else {
+                                    cell_ordering_tree <- cell_ordering_tree + edge(closest_to_head, 
+                                                                                    child_subtree_root)
                               }
                         }
+                        return(list(subtree = cell_ordering_tree, root = curr_branch_root_cell, 
+                                    last_cell_state = 1, last_cell_pseudotime = 0))
                   }
-                  if (reverse_ordering == FALSE) {
-                        curr_branch_root_cell <- names(curr_branch_pseudotimes)[1]
-                  }
-                  else {
-                        curr_branch_root_cell <- names(curr_branch_pseudotimes)[length(curr_branch_pseudotimes)]
-                  }
-                  for (child in V(branch_tree)[nei(curr_branch, mode = "out")]) {
-                        child_cell_ordering_subtree <- graph.empty()
-                        child_head <- names(branch_pseudotimes[[child]])[1]
-                        child_tail <- names(branch_pseudotimes[[child]])[length(branch_pseudotimes[[child]])]
-                        curr_branch_cell_names <- names(branch_pseudotimes[[curr_branch]])
-                        head_dist_to_curr <- dist_matrix[child_head, curr_branch_cell_names]
-                        closest_to_head <- names(head_dist_to_curr)[which(head_dist_to_curr == 
-                                                                                min(head_dist_to_curr))]
-                        head_dist_to_anchored_branch = NA
-                        branch_index_for_head <- NA
-                        head_dist_to_anchored_branch <- dist_matrix[closest_to_head, 
-                                                                    child_head]
-                        tail_dist_to_curr <- dist_matrix[child_tail, curr_branch_cell_names]
-                        closest_to_tail <- names(tail_dist_to_curr)[which(tail_dist_to_curr == 
-                                                                                min(tail_dist_to_curr))]
-                        tail_dist_to_anchored_branch = NA
-                        branch_index_for_tail <- NA
-                        tail_dist_to_anchored_branch <- dist_matrix[closest_to_tail, 
-                                                                    child_tail]
-                        if (tail_dist_to_anchored_branch < head_dist_to_anchored_branch) {
-                              reverse_child <- TRUE
-                        }
-                        else {
-                              reverse_child <- FALSE
-                        }
-                        res <- extract_branched_ordering_helper(branch_tree, 
-                                                                child, child_cell_ordering_subtree, branch_pseudotimes, 
-                                                                dist_matrix, reverse_child)
-                        child_cell_ordering_subtree <- res$subtree
-                        child_subtree_root <- res$root
-                        for (v in V(child_cell_ordering_subtree)) {
-                              cell_ordering_tree <- cell_ordering_tree + vertex(V(child_cell_ordering_subtree)[v]$name)
-                        }
-                        edge_list <- get.edgelist(child_cell_ordering_subtree)
-                        for (i in 1:nrow(edge_list)) {
-                              cell_ordering_tree <- cell_ordering_tree + edge(V(cell_ordering_tree)[edge_list[i, 
-                                                                                                              1]]$name, V(cell_ordering_tree)[edge_list[i, 
-                                                                                                                                                        2]]$name)
-                        }
-                        if (tail_dist_to_anchored_branch < head_dist_to_anchored_branch) {
-                              cell_ordering_tree <- cell_ordering_tree + edge(closest_to_tail, 
-                                                                              child_subtree_root)
-                        }
-                        else {
-                              cell_ordering_tree <- cell_ordering_tree + edge(closest_to_head, 
-                                                                              child_subtree_root)
-                        }
-                  }
-                  return(list(subtree = cell_ordering_tree, root = curr_branch_root_cell, 
-                              last_cell_state = 1, last_cell_pseudotime = 0))
-            }
-            res <- extract_branched_ordering_helper(branch_tree, curr_branch, 
-                                                    cell_ordering_tree, branch_pseudotimes, dist_matrix, 
-                                                    reverse_main_path)
-            cell_ordering_tree <- res$subtree
-            curr_state <- 1
-            assign_cell_state_helper <- function(ordering_tree_res, curr_cell) {
-                  cell_tree <- ordering_tree_res$subtree
-                  V(cell_tree)[curr_cell]$cell_state = curr_state
-                  children <- V(cell_tree)[nei(curr_cell, mode = "out")]
-                  ordering_tree_res$subtree <- cell_tree
-                  if (length(children) == 1) {
-                        ordering_tree_res <- assign_cell_state_helper(ordering_tree_res, 
-                                                                      V(cell_tree)[children]$name)
-                  }
-                  else {
-                        for (child in children) {
-                              curr_state <<- curr_state + 1
+                  res <- extract_branched_ordering_helper(branch_tree, curr_branch, 
+                                                          cell_ordering_tree, branch_pseudotimes, dist_matrix, 
+                                                          reverse_main_path)
+                  cell_ordering_tree <- res$subtree
+                  curr_state <- 1
+                  assign_cell_state_helper <- function(ordering_tree_res, curr_cell) {
+                        cell_tree <- ordering_tree_res$subtree
+                        V(cell_tree)[curr_cell]$cell_state = curr_state
+                        children <- V(cell_tree)[nei(curr_cell, mode = "out")]
+                        ordering_tree_res$subtree <- cell_tree
+                        if (length(children) == 1) {
                               ordering_tree_res <- assign_cell_state_helper(ordering_tree_res, 
-                                                                            V(cell_tree)[child]$name)
+                                                                            V(cell_tree)[children]$name)
                         }
+                        else {
+                              for (child in children) {
+                                    curr_state <<- curr_state + 1
+                                    ordering_tree_res <- assign_cell_state_helper(ordering_tree_res, 
+                                                                                  V(cell_tree)[child]$name)
+                              }
+                        }
+                        return(ordering_tree_res)
                   }
-                  return(ordering_tree_res)
-            }
-            res <- assign_cell_state_helper(res, res$root)
-            assign_pseudotime_helper <- function(ordering_tree_res, dist_matrix, 
-                                                 last_pseudotime, curr_cell) {
-                  cell_tree <- ordering_tree_res$subtree
-                  curr_cell_pseudotime <- last_pseudotime
-                  V(cell_tree)[curr_cell]$pseudotime = curr_cell_pseudotime
-                  ordering_tree_res$subtree <- cell_tree
-                  children <- V(cell_tree)[nei(curr_cell, mode = "out")]
-                  for (child in children) {
-                        next_node <- V(cell_tree)[child]$name
-                        delta_pseudotime <- dist_matrix[curr_cell, next_node]
-                        ordering_tree_res <- assign_pseudotime_helper(ordering_tree_res, 
-                                                                      dist_matrix, last_pseudotime + delta_pseudotime, 
-                                                                      next_node)
+                  res <- assign_cell_state_helper(res, res$root)
+                  assign_pseudotime_helper <- function(ordering_tree_res, dist_matrix, 
+                                                       last_pseudotime, curr_cell) {
+                        cell_tree <- ordering_tree_res$subtree
+                        curr_cell_pseudotime <- last_pseudotime
+                        V(cell_tree)[curr_cell]$pseudotime = curr_cell_pseudotime
+                        ordering_tree_res$subtree <- cell_tree
+                        children <- V(cell_tree)[nei(curr_cell, mode = "out")]
+                        for (child in children) {
+                              next_node <- V(cell_tree)[child]$name
+                              delta_pseudotime <- dist_matrix[curr_cell, next_node]
+                              ordering_tree_res <- assign_pseudotime_helper(ordering_tree_res, 
+                                                                            dist_matrix, last_pseudotime + delta_pseudotime, 
+                                                                            next_node)
+                        }
+                        return(ordering_tree_res)
                   }
-                  return(ordering_tree_res)
+                  res <- assign_pseudotime_helper(res, dist_matrix, 0, res$root)
+                  cell_names <- V(res$subtree)$name
+                  cell_states <- V(res$subtree)$cell_state
+                  cell_pseudotime <- V(res$subtree)$pseudotime
+                  ordering_df <- data.frame(sample_name = cell_names, cell_state = cell_states, pseudo_time = cell_pseudotime,stringsAsFactors = F)
+                  ordering_df <- arrange(ordering_df, pseudo_time)
+                  return(ordering_df)
             }
-            res <- assign_pseudotime_helper(res, dist_matrix, 0, res$root)
-            cell_names <- V(res$subtree)$name
-            cell_states <- V(res$subtree)$cell_state
-            cell_pseudotime <- V(res$subtree)$pseudotime
-            ordering_df <- data.frame(sample_name = cell_names, cell_state = cell_states, pseudo_time = cell_pseudotime,stringsAsFactors = F)
-            ordering_df <- arrange(ordering_df, pseudo_time)
-            return(ordering_df)
-      }
-      
-}    
+            
+      }    
 
 })

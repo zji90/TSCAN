@@ -71,73 +71,73 @@ shinyUI(
                                    wellPanel(
                                          checkboxInput("Orderinguploadordering","Upload your own cell ordering",value=F),
                                          conditionalPanel(condition="input.Orderinguploadordering=='1'",
-                                         wellPanel(
-                                               h5("Input Dataset"),
-                                               fileInput('OrderingFile', 'Choose File'),
-                                               p(actionButton("Orderingreadin","Read in")),
-                                               checkboxInput('Orderingheader', 'Header', TRUE),
-                                               radioButtons('Orderingsep', 'Separator',
-                                                            c('Tab'='\t',
-                                                              'Space'=' ',
-                                                              'Comma(csv)'=',',
-                                                              'Semicolon'=';'
-                                                            ),
-                                                            '\t'),
-                                               radioButtons('Orderingquote', 'Quote',
-                                                            c('None'='',
-                                                              'Double Quote'='"',
-                                                              'Single Quote'="'"),
-                                                            '')
-                                         )               
+                                                          wellPanel(
+                                                                h5("Input Dataset"),
+                                                                fileInput('OrderingFile', 'Choose File'),
+                                                                p(actionButton("Orderingreadin","Read in")),
+                                                                checkboxInput('Orderingheader', 'Header', TRUE),
+                                                                radioButtons('Orderingsep', 'Separator',
+                                                                             c('Tab'='\t',
+                                                                               'Space'=' ',
+                                                                               'Comma(csv)'=',',
+                                                                               'Semicolon'=';'
+                                                                             ),
+                                                                             '\t'),
+                                                                radioButtons('Orderingquote', 'Quote',
+                                                                             c('None'='',
+                                                                               'Double Quote'='"',
+                                                                               'Single Quote'="'"),
+                                                                             '')
+                                                          )               
                                          ),
                                          
                                          conditionalPanel(condition="input.Orderinguploadordering=='0'",
-                                         radioButtons("Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save")),
-                                         conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
-                                                          wellPanel(
-                                                                radioButtons("Orderingdimredmet","Choose dimension reduction method",c("Principal Component Analysis (PCA)"="PCA","Independent Component Analysis (ICA)"="ICA"))
+                                                          radioButtons("Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save")),
+                                                          conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
+                                                                           wellPanel(
+                                                                                 radioButtons("Orderingdimredmet","Choose dimension reduction method",c("Principal Component Analysis (PCA)"="PCA","Independent Component Analysis (ICA)"="ICA"))
+                                                                           ),
+                                                                           helpText("Warning: ICA could be extremely slow for large datasets, use with care!"),
+                                                                           sliderInput("Orderingdimredncomp","Choose number of components",min = 2,max = 20,step = 1,value = 2),
+                                                                           conditionalPanel(condition="input.Orderingdimredmet=='PCA'",
+                                                                                            p("Automatically select optimal dimension for PCA"),
+                                                                                            p(actionButton("Orderingdimredoptbut","Select")),
+                                                                                            checkboxInput("Orderingshowvarianceplottf","Show Variance proportion plot",value=F)
+                                                                           )
                                                           ),
-                                                          helpText("Warning: ICA could be extremely slow for large datasets, use with care!"),
-                                                          sliderInput("Orderingdimredncomp","Choose number of components",min = 2,max = 20,step = 1,value = 2),
-                                                          conditionalPanel(condition="input.Orderingdimredmet=='PCA'",
-                                                                           p("Automatically select optimal dimension for PCA"),
-                                                                           p(actionButton("Orderingdimredoptbut","Select")),
-                                                                           checkboxInput("Orderingshowvarianceplottf","Show Variance proportion plot",value=F)
+                                                          conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
+                                                                           wellPanel(
+                                                                                 #radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST","Principal curve"="PC"))
+                                                                                 radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST"))
+                                                                           ),
+                                                                           checkboxInput("Orderingptimetrimtf","Trim branch/cell",value=F),
+                                                                           uiOutput("Orderingptimetrimui"),
+                                                                           checkboxInput("Orderingptimezoomintf","Zoom in plot",value=F),
+                                                                           textInput("Orderingptimescale","Scale pseudotime",value=100),
+                                                                           uiOutput("Orderingptimezoominui"),
+                                                                           uiOutput("Orderingptimeui")
+                                                          ),
+                                                          conditionalPanel(condition="input.Orderingchoosestep=='start'&&input.Orderingptimechoosemethod=='TSP'",
+                                                                           helpText("Use marker genesets to determine starting point. Average expression value is used for each geneset."),
+                                                                           uiOutput("Orderingstartchoosemarkerui"),
+                                                                           selectInput("Orderingstartchoosegenetrend","Choose geneset trend",choices = list("Monotone increasing"="increasing","Monotone decreasing"="decreasing","Not clear"="No")),
+                                                                           p(actionButton("Orderingstartaddbutton","Add geneset")),
+                                                                           uiOutput("Orderingstartincludegenesetui"),
+                                                                           checkboxInput("Orderingstartscalegeneset","Scale gene expression levels",value=T),
+                                                                           p(actionButton("Orderingstartsetoptimalbutton","Set optimal value"))
+                                                          ),
+                                                          conditionalPanel(condition="input.Orderingchoosestep=='save'",
+                                                                           p("Save pseudotime ordering list"),
+                                                                           selectInput("Orderingsavepdatatype","Choose file type",choices = c("txt","csv")),
+                                                                           p(downloadButton("Orderingsavepdata")),
+                                                                           p("Save pseudotime ordering plot"),
+                                                                           checkboxInput("Orderingsaveplotparatf","Change titles",value=F),
+                                                                           uiOutput("Orderingsaveplotparaui"),
+                                                                           selectInput("Orderingsaveplottype","Choose plot type",choices = c("pdf","ps")),
+                                                                           textInput("Orderingsaveplotfilewidth","Enter plot width (inches)",12),
+                                                                           textInput("Orderingsaveplotfileheight","Enter plot height (inches)",12),
+                                                                           p(downloadButton("Orderingsaveplot"))
                                                           )
-                                         ),
-                                         conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
-                                                          wellPanel(
-                                                                #radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST","Principal curve"="PC"))
-                                                                radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST"))
-                                                          ),
-                                                          checkboxInput("Orderingptimetrimtf","Trim branch/cell",value=F),
-                                                          uiOutput("Orderingptimetrimui"),
-                                                          checkboxInput("Orderingptimezoomintf","Zoom in plot",value=F),
-                                                          textInput("Orderingptimescale","Scale pseudotime",value=100),
-                                                          uiOutput("Orderingptimezoominui"),
-                                                          uiOutput("Orderingptimeui")
-                                         ),
-                                         conditionalPanel(condition="input.Orderingchoosestep=='start'&&input.Orderingptimechoosemethod=='TSP'",
-                                                          helpText("Use marker genesets to determine starting point. Average expression value is used for each geneset."),
-                                                          uiOutput("Orderingstartchoosemarkerui"),
-                                                          selectInput("Orderingstartchoosegenetrend","Choose geneset trend",choices = list("Monotone increasing"="increasing","Monotone decreasing"="decreasing","Not clear"="No")),
-                                                          p(actionButton("Orderingstartaddbutton","Add geneset")),
-                                                          uiOutput("Orderingstartincludegenesetui"),
-                                                          checkboxInput("Orderingstartscalegeneset","Scale gene expression levels",value=T),
-                                                          p(actionButton("Orderingstartsetoptimalbutton","Set optimal value"))
-                                         ),
-                                         conditionalPanel(condition="input.Orderingchoosestep=='save'",
-                                                            p("Save pseudotime ordering list"),
-                                                          selectInput("Orderingsavepdatatype","Choose file type",choices = c("txt","csv")),
-                                                          p(downloadButton("Orderingsavepdata")),
-                                                          p("Save pseudotime ordering plot"),
-                                                          checkboxInput("Orderingsaveplotparatf","Change titles",value=F),
-                                                            uiOutput("Orderingsaveplotparaui"),
-                                                          selectInput("Orderingsaveplottype","Choose plot type",choices = c("pdf","ps")),
-                                                          textInput("Orderingsaveplotfilewidth","Enter plot width (inches)",12),
-                                                          textInput("Orderingsaveplotfileheight","Enter plot height (inches)",12),
-                                                          p(downloadButton("Orderingsaveplot"))
-                                         )
                                          )
                                    )
                                    
@@ -184,11 +184,12 @@ shinyUI(
                                                                          'Double Quote'='"',
                                                                          'Single Quote'="'"),
                                                                        '')            
-                                          ),
+                                         ),
                                          conditionalPanel(condition="input.Compareinputopt=='order'",
                                                           h5("Input Cell Ordering Dataset"),
+                                                          uiOutput("compareordernameui"),
                                                           fileInput('CompareorderFile', 'Choose File'),
-                                                          p(actionButton("Compareorderreadin","Read in"),actionButton("Compareorderadddata","Add Ordering Data")),
+                                                          p(actionButton("Compareorderreadin","Read in"), actionButton("Compareorderadddata","Add Ordering Data")),
                                                           checkboxInput('Compareorderheader', 'Header', TRUE),
                                                           radioButtons('Compareordersep', 'Separator',
                                                                        c('Tab'='\t',
@@ -202,14 +203,14 @@ shinyUI(
                                                                          'Double Quote'='"',
                                                                          'Single Quote'="'"),
                                                                        '')
-                                         )                                                                                  
-                                         )                                                                     
+                                         )
+                                   )                                                                     
                   )
                   
             ),
             
             mainPanel(
-                                    
+                  
                   uiOutput("showbusybar"),
                   
                   conditionalPanel(condition="input.MainMenu=='Input'",
@@ -226,32 +227,43 @@ shinyUI(
                                    conditionalPanel(condition="input.Orderinguploadordering=='1'",
                                                     checkboxInput("Orderinguploadshowinstructiontf","Show instructions",value=T),
                                                     uiOutput("Orderinguploadshowinstructionui"),
-                                                      uiOutput("Orderinguploadshowpdataui")
+                                                    uiOutput("Orderinguploadshowpdataui")
                                    ),
                                    conditionalPanel(condition="input.Orderinguploadordering=='0'",
-                                   conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
-                                                    plotOutput("Orderingreductionshowplot",width = "800px",height = "800px"),
-                                                    plotOutput("Orderingreductionshowvariance",width = "800px",height = "800px")
-                                   ),
-                                   conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
-                                                    tabsetPanel(
-                                                          tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px")),
-                                                          tabPanel("Pseudotime",dataTableOutput("Orderingptimeshowptime"))
-                                                    )                                                    
-                                   ),
-                                   conditionalPanel(condition="input.Orderingchoosestep=='start'",                                                    
-                                                    uiOutput("Orderingstartmainui")                                         
-                                   ),
-                                   conditionalPanel(condition="input.Orderingchoosestep=='save'",
-                                                    tabsetPanel(
-                                                          tabPanel("Plot",plotOutput("Orderingsaveshowplot",width = "800px",height = "800px")),
-                                                          tabPanel("Pseudotime",dataTableOutput("Orderingsaveshowptime"))
-                                                    )                                                    
+                                                    conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
+                                                                     plotOutput("Orderingreductionshowplot",width = "800px",height = "800px"),
+                                                                     plotOutput("Orderingreductionshowvariance",width = "800px",height = "800px")
+                                                    ),
+                                                    conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
+                                                                     tabsetPanel(
+                                                                           tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px")),
+                                                                           tabPanel("Pseudotime",dataTableOutput("Orderingptimeshowptime")),
+                                                                           tabPanel("trim expression",
+                                                                                    h5("List of criterion:"),
+                                                                                    tableOutput("trimexprlistshowtable"),
+                                                                                    h5("Trimmed cells:"),
+                                                                                    textOutput("trimexprshowcelllist"),
+                                                                                    h5("Gene expression heatmap:"),
+                                                                                    plotOutput("trimexprshowheatmap")                                                                                    
+                                                                           )
+                                                                     )                                                    
+                                                    ),
+                                                    conditionalPanel(condition="input.Orderingchoosestep=='start'",                                                    
+                                                                     uiOutput("Orderingstartmainui")                                         
+                                                    ),
+                                                    conditionalPanel(condition="input.Orderingchoosestep=='save'",
+                                                                     tabsetPanel(
+                                                                           tabPanel("Plot",plotOutput("Orderingsaveshowplot",width = "800px",height = "800px")),
+                                                                           tabPanel("Pseudotime",dataTableOutput("Orderingsaveshowptime"))
+                                                                     )                                                    
                                                     )
                                    )
                   ),
                   conditionalPanel(condition="input.MainMenu=='Changepoint'",
                                    uiOutput("Changpointmainui")
+                  ),
+                  conditionalPanel(condition="input.MainMenu=='Miscellaneous'",
+                                   uiOutput("Miscshowresultsui")
                   ),
                   conditionalPanel(condition="input.MainMenu=='About'",
                                    p('SCAtool: Single-cell Analysis Tool'),
