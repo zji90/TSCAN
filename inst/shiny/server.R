@@ -14,6 +14,7 @@ library(plyr)
 library(TSP)
 library(combinat)
 library(mgcv)
+library(gplots)
 
 options(shiny.maxRequestSize=30000*1024^2)
 
@@ -128,6 +129,11 @@ shinyServer(function(input, output,session) {
       })
       
       ### Cell Ordering ###
+      
+      observe({
+            if (input$MainMenu != "Ordering")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save"),selected = "reduction")
+      })
       
       #upload own cell ordering
       
@@ -591,8 +597,7 @@ shinyServer(function(input, output,session) {
       output$Orderingstartmainui <- renderUI({
             if (input$Orderingptimechoosemethod == "TSP") {
                   tabsetPanel(
-                        tabPanel("Ordering",checkboxInput("Orderingstartflip","Flip the ordering"),
-                                 uiOutput("Orderingstartshowheatui")
+                        tabPanel("Ordering", uiOutput("Orderingstartshowheatui")
                         ),
                         tabPanel("Genesets",dataTableOutput("Orderingstartsuggestshowgeneset")),
                         tabPanel("Pseudotime",dataTableOutput("Orderingstartsuggestshowpseudotime"))
@@ -684,7 +689,6 @@ shinyServer(function(input, output,session) {
             if (input$Orderingchoosestep=='start' && !is.null(Maindata$pdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
                   pdata <- Maindata$pdata[,-2]
                   pdata <- pdata[order(pdata$Pseudotime),]
-                  print(str(pdata))
                   if (is.null(Maindata$decreaseexpr)) {
                         allexpr <- Maindata$increaseexpr
                   } else {
@@ -734,6 +738,8 @@ shinyServer(function(input, output,session) {
       output$Orderingstartshowheatui <- renderUI({
             if (!is.null(Maindata$procdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
                   tagList(                  
+                        p(actionButton("Orderingstartsetoptimalbutton","Set optimal value")),
+                        checkboxInput("Orderingstartflip","Flip the ordering"),
                         sliderInput("Orderingstartslider","Slide to select the starting point",min=1,max=ncol(Maindata$procdata),step=1,value=1,width='800px'),
                         plotOutput("Orderingstartshowheatmap",width='800px'),
                         p(textOutput("Orderingstartsuggestshowres"))
@@ -931,6 +937,11 @@ shinyServer(function(input, output,session) {
       })
       
       ###  Miscellaneous ###
+            
+      observe({
+            if (input$MainMenu != "Ordering")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save"),selected = "reduction")
+      })
       
       Miscdata <- reactiveValues()
       

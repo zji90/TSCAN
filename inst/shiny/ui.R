@@ -123,8 +123,8 @@ shinyUI(
                                                                            selectInput("Orderingstartchoosegenetrend","Choose geneset trend",choices = list("Monotone increasing"="increasing","Monotone decreasing"="decreasing","Not clear"="No")),
                                                                            p(actionButton("Orderingstartaddbutton","Add geneset")),
                                                                            uiOutput("Orderingstartincludegenesetui"),
-                                                                           checkboxInput("Orderingstartscalegeneset","Scale gene expression levels",value=T),
-                                                                           p(actionButton("Orderingstartsetoptimalbutton","Set optimal value"))
+                                                                           checkboxInput("Orderingstartscalegeneset","Scale gene expression levels",value=T)
+                                                                           
                                                           ),
                                                           conditionalPanel(condition="input.Orderingchoosestep=='save'",
                                                                            p("Save pseudotime ordering list"),
