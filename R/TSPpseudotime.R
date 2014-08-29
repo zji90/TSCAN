@@ -20,6 +20,7 @@
 #' @param geneexpr Gene expression values used to determine optimal starting point. Gene expression values should change monotonically in the true biological process. Names should agree exactly with column names of data (can be of different order).
 #' @param exprtrend Trend of gene expression values. Either increasing or decreasing.
 #' @param maxtime Numeric value to specify the pseudotime of the ending point.
+#' @param kmeansiter Number of iterations of K-means clustering. The function will automatically pick an optimal clustering.
 #' @return a list containing
 #' \itemize{
 #'    \item pseudotime Data frame containing the constructed pseudotime information. First column: cell name. Second column: cell states. Third column: Pseudotime.
@@ -41,7 +42,7 @@
 #' row.names(diffval)[diffval$qval < 0.05]
 #' singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
 
-TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startpoint = NULL, flip = FALSE, geneexpr = NULL, exprtrend = "increasing", maxtime = 100) {    
+TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startpoint = NULL, flip = FALSE, geneexpr = NULL, exprtrend = "increasing", maxtime = 100, kmeansiter = 10) {    
       
       if (!is.null(geneexpr)) {
             if (!identical(sort(names(geneexpr)),sort(colnames(data)))) {
@@ -143,7 +144,26 @@ TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startp
       })
       ptime <- c(0,cumsum(alldist))
       ptime <- ptime/max(ptime) * maxtime
-      state <- kmeans(reduceres,centers = statenum)$cluster[finalorder]
+      optkmeansstate <- NULL
+      optkmeanscost <- NULL
+      for (i in 1:kmeansiter) {
+            tmpstate <- kmeans(reduceres,centers = statenum)$cluster[finalorder]
+            tmpcost <- sum(sapply(1:statenum,function(s) {
+                  instatecell <- names(tmpstate[tmpstate==s])
+                  sum(dp[instatecell,instatecell])                  
+            }))
+            cat(tmpcost)
+            if (i == 1){
+                  optkmeansstate <- tmpstate
+                  optkmeanscost <- tmpcost
+            } else {
+                  if (tmpcost < optkmeanscost) {
+                        optkmeansstate <- tmpstate
+                        optkmeanscost <- tmpcost                        
+                  } 
+            }
+      }
+      state <- optkmeansstate
       pseudotime <- data.frame(sample_name = finalorder, State = state, Pseudotime = ptime, stringsAsFactors = F)
       row.names(pseudotime) <- NULL
       list(pseudotime,reduceres)

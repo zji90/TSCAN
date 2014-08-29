@@ -405,6 +405,7 @@ shinyServer(function(input, output,session) {
                         alldist <- sapply(1:(length(datalab)-1), function(x) {
                               distmat[datalab[x],datalab[x+1]]
                         })
+                        
                         state <- kmeans(t(Maindata$reduceres),centers=as.numeric(input$OrderingTSPclunum))$cluster
                         ptime <- c(0,cumsum(alldist))
                         ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
@@ -494,7 +495,7 @@ shinyServer(function(input, output,session) {
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
             }
-            g <- g + theme(panel.border = element_blank(), axis.line = element_line()) + 
+            g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize)) + theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
                   labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
@@ -554,7 +555,7 @@ shinyServer(function(input, output,session) {
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
             }
-            g <- g + theme(panel.border = element_blank(), axis.line = element_line()) + 
+            g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
                   labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 

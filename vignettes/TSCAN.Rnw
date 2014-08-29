@@ -1,4 +1,3 @@
-%\VignetteEngine{knitr::knitr}
 %\VignetteIndexEntry{TSCAN: Tools for Single-Cell ANalysis} 
 %\VignetteDepends{} 
 %\VignettePackage{TSCAN}

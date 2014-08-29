@@ -132,6 +132,7 @@ shinyUI(
                                                                            p(downloadButton("Orderingsavepdata")),
                                                                            p("Save pseudotime ordering plot"),
                                                                            checkboxInput("Orderingsaveplotparatf","Change titles",value=F),
+                                                                           sliderInput("Orderingsaveplotfontsize","Adjust font size",min = 1,max=50,step=1,value=12),
                                                                            uiOutput("Orderingsaveplotparaui"),
                                                                            selectInput("Orderingsaveplottype","Choose plot type",choices = c("pdf","ps")),
                                                                            textInput("Orderingsaveplotfilewidth","Enter plot width (inches)",12),
