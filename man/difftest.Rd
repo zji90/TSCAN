@@ -22,6 +22,20 @@ testing differentially expressed genes
 This function tests whether a gene is significantly expressed given pseudotime ordering. Generalized additive model (GAM) with user-specified
 degrees of freedoms is compared with a constant fit to get the p-values. The p-values are adjusted for multiple testing using fdr to gain qvalues.
 }
+\examples{
+library(HSMMSingleCell)
+library(Biobase)
+data(HSMM)
+HSMMdata <- exprs(HSMM)
+HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
+procdata <- preprocess(HSMMdata)
+#Choose MYOG gene expression as marker gene
+MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
+HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+diffval <- difftest(procdata,HSMMpseudotime[[1]])
+#Selected differentially expressed genes under qvlue cutoff of 0.05
+row.names(diffval)[diffval$qval < 0.05]
+}
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }

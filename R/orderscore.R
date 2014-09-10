@@ -12,7 +12,11 @@
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @examples
-#' data(HSMMdata)
+#' library(HSMMSingleCell)
+#' library(Biobase)
+#' data(HSMM)
+#' HSMMdata <- exprs(HSMM)
+#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
 #' procdata <- preprocess(HSMMdata)
 #' subpopulation <- data.frame(cell = colnames(procdata), sub = ifelse(grepl("T0",colnames(procdata)),0,1), stringsAsFactors = FALSE)
 #' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)

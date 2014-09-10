@@ -32,6 +32,14 @@ This function first takes logarithm of the raw data and then filters out genes/f
 It also filters out genes/features with low coefficient of variance which indicates the genes/features does not contain much information.
 The default setting will first take log2 of the raw data after adding a pseudocount of 1. Then genes/features in which at least half of cells have expression values are greater than 1 and the coefficeints of variance across all cells are at least 1 are retained.
 }
+\examples{
+library(HSMMSingleCell)
+library(Biobase)
+data(HSMM)
+HSMMdata <- exprs(HSMM)
+HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
+procdata <- preprocess(HSMMdata)
+}
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }

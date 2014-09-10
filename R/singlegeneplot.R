@@ -12,6 +12,17 @@
 #' @import ggplot2
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @seealso \code{\link{TSPpseudotime}} for examples
+#' @examples
+#' library(HSMMSingleCell)
+#' library(Biobase)
+#' data(HSMM)
+#' HSMMdata <- exprs(HSMM)
+#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
+#' procdata <- preprocess(HSMMdata)
+#' #Choose MYOG gene expression as marker gene
+#' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
+#' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+#' singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
 
 singlegeneplot <- function(geneexpr, pseudotime, cell_size = 2) {
       geneexpr <- geneexpr[pseudotime[,1]]

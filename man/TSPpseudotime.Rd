@@ -5,7 +5,7 @@
 \usage{
 TSPpseudotime(data, dim = "auto", statenum = 3, scale = TRUE,
   startpoint = NULL, flip = FALSE, geneexpr = NULL,
-  exprtrend = "increasing", maxtime = 100)
+  exprtrend = "increasing", maxtime = 100, kmeansiter = 10)
 }
 \arguments{
 \item{data}{The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.}
@@ -25,6 +25,8 @@ TSPpseudotime(data, dim = "auto", statenum = 3, scale = TRUE,
 \item{exprtrend}{Trend of gene expression values. Either increasing or decreasing.}
 
 \item{maxtime}{Numeric value to specify the pseudotime of the ending point.}
+
+\item{kmeansiter}{Number of iterations of K-means clustering. The function will automatically pick an optimal clustering.}
 }
 \value{
 a list containing
@@ -47,16 +49,15 @@ Users can also use the expression value of a gene to determine the optimal start
 K-means clustering will be used to determine the different stages of cell during the biological process.
 }
 \examples{
-data(HSMMdata)
+library(HSMMSingleCell)
+library(Biobase)
+data(HSMM)
+HSMMdata <- exprs(HSMM)
+HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
 procdata <- preprocess(HSMMdata)
 #Choose MYOG gene expression as marker gene
 MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
 HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
-plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
-diffval <- difftest(procdata,HSMMpseudotime[[1]])
-#Selected differentially expressed genes under qvlue cutoff of 0.05
-row.names(diffval)[diffval$qval < 0.05]
-singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
 }
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>

@@ -17,6 +17,17 @@
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Cole Trapnell and Davide Cacchiarelli et al (2014): The dynamics and regulators of cell fate decisions are revealed by pseudo-temporal ordering of single cells. Nature Biotechnology
 #' @seealso \code{\link{TSPpseudotime}} for examples
+#' @examples
+#' library(HSMMSingleCell)
+#' library(Biobase)
+#' data(HSMM)
+#' HSMMdata <- exprs(HSMM)
+#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
+#' procdata <- preprocess(HSMMdata)
+#' #Choose MYOG gene expression as marker gene
+#' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
+#' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+#' plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
 
 plotpseudotime <- function(pseudotimedata, x = 1, y = 2, show_tree = T, show_cell_names = T, cell_name_size = 3, markerexpr = NULL) {
       lib_info_with_pseudo <- pseudotimedata[[1]]

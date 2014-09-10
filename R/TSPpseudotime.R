@@ -28,19 +28,19 @@
 #' }
 #' @export
 #' @import TSP
+#' @import HSMMSingleCell
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Rosenkrantz, D. J., Stearns, R. E., & Lewis, II, P. M. (1977). An analysis of several heuristics for the traveling salesman problem. SIAM journal on computing, 6(3), 563-581.
 #' @examples
-#' data(HSMMdata)
+#' library(HSMMSingleCell)
+#' library(Biobase)
+#' data(HSMM)
+#' HSMMdata <- exprs(HSMM)
+#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
 #' procdata <- preprocess(HSMMdata)
 #' #Choose MYOG gene expression as marker gene
 #' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
 #' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
-#' plotpseudotime(HSMMpseudotime, markerexpr = MYOGexpr)
-#' diffval <- difftest(procdata,HSMMpseudotime[[1]])
-#' #Selected differentially expressed genes under qvlue cutoff of 0.05
-#' row.names(diffval)[diffval$qval < 0.05]
-#' singlegeneplot(MYOGexpr, HSMMpseudotime[[1]])
 
 TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startpoint = NULL, flip = FALSE, geneexpr = NULL, exprtrend = "increasing", maxtime = 100, kmeansiter = 10) {    
       
