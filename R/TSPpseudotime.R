@@ -29,6 +29,7 @@
 #' @export
 #' @import TSP
 #' @import HSMMSingleCell
+#' @import Biobase
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Rosenkrantz, D. J., Stearns, R. E., & Lewis, II, P. M. (1977). An analysis of several heuristics for the traveling salesman problem. SIAM journal on computing, 6(3), 563-581.
 #' @examples
@@ -152,7 +153,6 @@ TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startp
                   instatecell <- names(tmpstate[tmpstate==s])
                   sum(dp[instatecell,instatecell])                  
             }))
-            cat(tmpcost)
             if (i == 1){
                   optkmeansstate <- tmpstate
                   optkmeanscost <- tmpcost

@@ -2,13 +2,13 @@ Package: TSCAN
 Type: Package
 Title: TSCAN: Tools for Single-Cell ANalysis
 Version: 0.99.2
-Date: 2014-08-21
+Date: 2014-09-10
 Author: Zhicheng Ji, Hongkai Ji
 Maintainer: Zhicheng Ji <zji4@jhu.edu>
 Description: TSCAN enables users to easily construct and tune pseudotemporal
     cell ordering as well as analyzing differentially expressed genes. TSCAN
-    comes with a user-friendly GUI written in shiny. More functions will come
-    in the future.
+    comes with a user-friendly GUI written in shiny. More features will come in
+    the future.
 License: GPL(>=2)
 Imports:
     ggplot2,
@@ -23,6 +23,9 @@ Imports:
     gplots,
     HSMMSingleCell,
     Biobase
+VignetteBuilder: knitr
+Suggests:
+    knitr
 Depends:
     R(>= 2.10.0)
 biocViews: GeneExpression, Visualization, GUI
