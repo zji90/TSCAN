@@ -28,20 +28,14 @@
 #' }
 #' @export
 #' @import TSP
-#' @import HSMMSingleCell
-#' @import Biobase
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @references Rosenkrantz, D. J., Stearns, R. E., & Lewis, II, P. M. (1977). An analysis of several heuristics for the traveling salesman problem. SIAM journal on computing, 6(3), 563-581.
 #' @examples
-#' library(HSMMSingleCell)
-#' library(Biobase)
-#' data(HSMM)
-#' HSMMdata <- exprs(HSMM)
-#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
-#' procdata <- preprocess(HSMMdata)
-#' #Choose MYOG gene expression as marker gene
-#' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
-#' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+#' data(lpsdata)
+#' procdata <- preprocess(lpsdata)
+#' #Choose STAT2 gene expression as marker gene
+#' STAT2expr <- log2(lpsdata["STAT2",]+1)
+#' TSPpseudotime(procdata, geneexpr = STAT2expr, dim = 2)
 
 TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startpoint = NULL, flip = FALSE, geneexpr = NULL, exprtrend = "increasing", maxtime = 100, kmeansiter = 10) {    
       
@@ -74,7 +68,6 @@ TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startp
             pcres <- prcomp(t(scaledata), scale = F)
       }      
       
-
       if (dim == "auto") {
             sdev <- pcres$sdev[1:20]
             x <- 1:20
@@ -166,6 +159,5 @@ TSPpseudotime <- function(data, dim = "auto", statenum = 3, scale = TRUE, startp
       state <- optkmeansstate
       pseudotime <- data.frame(sample_name = finalorder, State = state, Pseudotime = ptime, stringsAsFactors = F)
       row.names(pseudotime) <- NULL
-      list(pseudotime,reduceres)
-      
+      list(pseudotime,reduceres)      
 }

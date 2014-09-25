@@ -18,12 +18,8 @@
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @seealso \code{\link{TSPpseudotime}} for examples
 #' @examples
-#' library(HSMMSingleCell)
-#' library(Biobase)
-#' data(HSMM)
-#' HSMMdata <- exprs(HSMM)
-#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
-#' procdata <- preprocess(HSMMdata)
+#' data(lpsdata)
+#' procdata <- preprocess(lpsdata)
 
 preprocess <- function(data, takelog = TRUE, logbase = 2, pseudocount = 1, minexpr_value = 1, minexpr_percent = 0.5, cvcutoff = 1) {
       if (takelog) {

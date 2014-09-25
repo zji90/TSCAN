@@ -12,16 +12,13 @@
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @examples
-#' library(HSMMSingleCell)
-#' library(Biobase)
-#' data(HSMM)
-#' HSMMdata <- exprs(HSMM)
-#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
-#' procdata <- preprocess(HSMMdata)
-#' subpopulation <- data.frame(cell = colnames(procdata), sub = ifelse(grepl("T0",colnames(procdata)),0,1), stringsAsFactors = FALSE)
-#' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
+#' data(lpsdata)
+#' procdata <- preprocess(lpsdata)
+#' subpopulation <- data.frame(cell = colnames(procdata), sub = ifelse(grepl("Unstimulated",colnames(procdata)),0,1), stringsAsFactors = FALSE)
+#' #Choose STAT2 gene expression as marker gene
+#' STAT2expr <- log2(lpsdata["STAT2",]+1)
 #' #Comparing ordering with or without marker gene information
-#' order1 <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
+#' order1 <- TSPpseudotime(procdata, geneexpr = STAT2expr, dim = 2)
 #' order2 <- TSPpseudotime(procdata, dim = 2)
 #' orders <- list(order1[[1]],order2[[1]])
 #' orderscore(subpopulation, orders)

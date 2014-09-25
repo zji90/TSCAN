@@ -14,16 +14,12 @@
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @seealso \code{\link{TSPpseudotime}} for examples
 #' @examples
-#' library(HSMMSingleCell)
-#' library(Biobase)
-#' data(HSMM)
-#' HSMMdata <- exprs(HSMM)
-#' HSMMdata <- HSMMdata[,grep("T0|72",colnames(HSMMdata))]
-#' procdata <- preprocess(HSMMdata)
-#' #Choose MYOG gene expression as marker gene
-#' MYOGexpr <- log2(HSMMdata["ENSG00000122180.4",]+1)
-#' HSMMpseudotime <- TSPpseudotime(procdata, geneexpr = MYOGexpr, dim = 2)
-#' diffval <- difftest(procdata,HSMMpseudotime[[1]])
+#' data(lpsdata)
+#' procdata <- preprocess(lpsdata)
+#' #Choose STAT2 gene expression as marker gene
+#' STAT2expr <- log2(lpsdata["STAT2",]+1)
+#' lpspseudotime <- TSPpseudotime(procdata, geneexpr = STAT2expr, dim = 2)
+#' diffval <- difftest(procdata,lpspseudotime[[1]])
 #' #Selected differentially expressed genes under qvlue cutoff of 0.05
 #' row.names(diffval)[diffval$qval < 0.05]
 
