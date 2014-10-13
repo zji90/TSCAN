@@ -11,10 +11,10 @@ library(grid)
 library(igraph)
 library(ggplot2)
 library(plyr)
-library(TSP)
 library(combinat)
 library(mgcv)
 library(gplots)
+library(mclust)
 
 options(shiny.maxRequestSize=30000*1024^2)
 
@@ -235,7 +235,7 @@ shinyServer(function(input, output,session) {
                                          selectInput("Orderingptimetrimcellselect","Select cell name",choices = colnames(Maindata$procdata),multiple = T)
                         ),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='expression'",
-                                          helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the right."),
+                                         helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the right."),
                                          selectInput("Orderingexpressiontrimgene","Gene",choices=row.names(Maindata$rawlogdata)),
                                          radioButtons("Orderingexpressiontrimgtlt","",choices=list("greater than"="greater","smaller than"="smaller")),
                                          textInput("Orderingexpressiontrimvalue","Value",value=0),
@@ -328,28 +328,30 @@ shinyServer(function(input, output,session) {
       })
       
       output$Orderingptimeui <- renderUI({                                                    
-            if (input$Orderingptimechoosemethod=="MST") {
+            if (input$Orderingptimechoosemethod=="Monocle") {
                   tagList(
-                        sliderInput("OrderingMSTpathnum","Choose number of paths",min=1,max=20,step=1,value=3),
-                        checkboxInput("OrderingMSTreversetf","Reverse the ordering",value=F),
-                        checkboxInput("OrderingMSTshow_tree","Show tree",value = T),
-                        checkboxInput("OrderingMSTshow_backbone","Show diameter path (backbone)",value = T),
-                        selectInput("OrderingMSTbackbone_color","Select backbone color",choices = c("black","red","blue","green","yellow")),
-                        checkboxInput("OrderingMSTshow_cell_names","Show cell names",value = T),
-                        conditionalPanel(condition="input.OrderingMSTshow_cell_names=='1'",textInput("OrderingMSTcell_name_size","Choose the size of cell name labels",value = 3)),
-                        checkboxInput("OrderingMSTmarkertf","Use marker gene to define node size",value=F),
-                        conditionalPanel(condition="input.OrderingMSTmarkertf=='1'",uiOutput("OrderingMSTmarkerui")),
-                        checkboxInput("OrderingMSTrootcelltf","Choose root cell",value=F),
-                        conditionalPanel(condition="input.OrderingMSTrootcelltf=='1'",uiOutput("OrderingMSTrootcellui")))
-                  
-            } else if (input$Orderingptimechoosemethod=="TSP") {
+                        sliderInput("OrderingMonoclepathnum","Choose number of paths",min=1,max=20,step=1,value=3),
+                        checkboxInput("OrderingMonoclereversetf","Reverse the ordering",value=F),
+                        checkboxInput("OrderingMonocleshow_tree","Show tree",value = T),
+                        checkboxInput("OrderingMonocleshow_backbone","Show diameter path (backbone)",value = T),
+                        selectInput("OrderingMonoclebackbone_color","Select backbone color",choices = c("black","red","blue","green","yellow")),
+                        checkboxInput("OrderingMonocleshow_cell_names","Show cell names",value = T),
+                        conditionalPanel(condition="input.OrderingMonocleshow_cell_names=='1'",textInput("OrderingMonoclecell_name_size","Choose the size of cell name labels",value = 3)),
+                        checkboxInput("OrderingMonoclemarkertf","Use marker gene to define node size",value=F),
+                        conditionalPanel(condition="input.OrderingMonoclemarkertf=='1'",uiOutput("OrderingMonoclemarkerui")),
+                        checkboxInput("OrderingMonoclerootcelltf","Choose root cell",value=F),
+                        conditionalPanel(condition="input.OrderingMonoclerootcelltf=='1'",uiOutput("OrderingMonoclerootcellui")))                  
+            } else if (input$Orderingptimechoosemethod=="TSCAN") {
                   tagList(
-                        sliderInput("OrderingTSPclunum","Choose number of cell clusters",min=1,max=20,step=1,value=3),
-                        checkboxInput("OrderingTSPshow_tree","Show tree",value = T),
-                        checkboxInput("OrderingTSPshow_cell_names","Show cell name",value=T),
-                        conditionalPanel(condition="input.OrderingTSPshow_cell_names=='1'",textInput("OrderingTSPcell_name_size","Choose the size of cell name labels",value = 3)),
-                        checkboxInput("OrderingTSPmarkertf","Use marker gene to define node size",value=F),
-                        conditionalPanel(condition="input.OrderingTSPmarkertf=='1'",uiOutput("OrderingTSPmarkerui"))
+                        sliderInput("OrderingTSCANclunum","Choose number of cell clusters",min=1,max=20,step=1,value=3),
+                        p(actionButton("OrderingTSCANoptclunum","Optimal cluster number")),
+                        checkboxInput("OrderingTSCANtuneordertf","Manually tune ordering"),
+                        conditionalPanel(condition="input.OrderingTSCANtuneordertf=='1'",textInput("OrderingTSCANtuneorder","Ordering should be seperated by comma")),
+                        checkboxInput("OrderingTSCANshow_tree","Show tree",value = F),                        
+                        checkboxInput("OrderingTSCANshow_cell_names","Show cell name",value=T),
+                        conditionalPanel(condition="input.OrderingTSCANshow_cell_names=='1'",textInput("OrderingTSCANcell_name_size","Choose the size of cell name labels",value = 3)),
+                        checkboxInput("OrderingTSCANmarkertf","Use marker gene to define node size",value=F),
+                        conditionalPanel(condition="input.OrderingTSCANmarkertf=='1'",uiOutput("OrderingTSCANmarkerui"))
                   )
             } else if (input$Orderingptimechoosemethod=="PC") {
                   tagList(
@@ -376,40 +378,120 @@ shinyServer(function(input, output,session) {
       })
       
       observe({
+            if (!is.null(Maindata$reduceres) && input$Orderingptimechoosemethod=="TSCAN") {
+                  input$OrderingTSCANoptclunum
+                  isolate({
+                        optnum <- suppressWarnings(Mclust(t(Maindata$reduceres),modelNames="VVV"))$G
+                        updateSliderInput(session,"OrderingTSCANclunum","Choose number of cell clusters",value=as.numeric(optnum))
+                  })
+            }
+      })
+      
+      observe({
             if (!is.null(Maindata$reduceres)) {
-                  if (input$Orderingptimechoosemethod=="MST" && !is.null(input$OrderingMSTpathnum) && !is.null(Maindata$reduceres)) { 
-                        if (!is.null(input$OrderingMSTrootcell) && input$OrderingMSTrootcelltf && nchar(input$OrderingMSTrootcell) != 0) {
-                              root_cell <- input$OrderingMSTrootcell 
+                  if (input$Orderingptimechoosemethod=="Monocle" && !is.null(input$OrderingMonoclepathnum) && !is.null(Maindata$reduceres)) { 
+                        if (!is.null(input$OrderingMonoclerootcell) && input$OrderingMonoclerootcelltf && nchar(input$OrderingMonoclerootcell) != 0) {
+                              root_cell <- input$OrderingMonoclerootcell 
                         } else {
                               root_cell <- NULL      
                         }
-                        num_paths <- as.numeric(input$OrderingMSTpathnum)
-                        reverse <- input$OrderingMSTreversetf                            
+                        num_paths <- as.numeric(input$OrderingMonoclepathnum)
+                        reverse <- input$OrderingMonoclereversetf                            
                         dp <- as.matrix(dist(t(Maindata$reduceres)))
                         gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-                        dp_mst <- minimum.spanning.tree(gp)
-                        Maindata$dp_mst <- dp_mst
+                        dp_Monocle <- minimum.spanning.tree(gp)
+                        Maindata$dp_Monocle <- dp_Monocle
                         next_node <<- 0
-                        res <- pq_helper(dp_mst, use_weights = FALSE, root_node = root_cell)
+                        res <- pq_helper(dp_Monocle, use_weights = FALSE, root_node = root_cell)
                         cc_ordering <- extract_good_branched_ordering(res$subtree, res$root, dp, num_paths, reverse)
                         colnames(cc_ordering) <- c("sample_name","State","Pseudotime")
                         cc_ordering$Pseudotime <- cc_ordering$Pseudotime/max(cc_ordering$Pseudotime) * as.numeric(input$Orderingptimescale)
                         Maindata$scapdata <- cc_ordering
-                  } else if (input$Orderingptimechoosemethod=="TSP" && !is.null(input$OrderingTSPclunum)) {
+                  } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANclunum)) {
                         set.seed(12345)
-                        datadist <- dist(t(Maindata$reduceres))
-                        dataTSP <- TSP(datadist)
-                        datasolve <- solve_TSP(dataTSP)
-                        datalab <- labels(datasolve)
-                        distmat <- as.matrix(datadist)
-                        alldist <- sapply(1:(length(datalab)-1), function(x) {
-                              distmat[datalab[x],datalab[x+1]]
-                        })
+                        res <- suppressWarnings(Mclust(t(Maindata$reduceres),G=input$OrderingTSCANclunum,modelNames="VVV"))
+                        clusterid <- apply(res$z,1,which.max)
+                        clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
+                        for (cid in 1:res$G) {
+                              clucenter[cid,] <- colMeans(t(Maindata$reduceres)[names(clusterid[clusterid==cid]),,drop=F])
+                        }
+                        dp <- as.matrix(dist(clucenter))                                            
+                        gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
+                        Maindata$dp_TSCAN <- MSTtree <- minimum.spanning.tree(gp)
+                        Maindata$clucenter_TSCAN=clucenter
+                        allsp <- shortest.paths(MSTtree)
+                        longestsp <- which(allsp == max(allsp), arr.ind = T)
+                        if (input$OrderingTSCANtuneordertf && input$OrderingTSCANtuneorder!="") {                            
+                              Maindata$MSTorder_TSCAN <- MSTorder <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
+                        } else {
+                              Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                        }                                                                    
+                        trimclu <- setdiff(as.vector(V(MSTtree)),MSTorder)
+                        row.names(clucenter) <- paste0("clu",1:nrow(clucenter)) 
+                        trimcell <- names(clusterid[clusterid==trimclu])
+                        reduceres <- t(Maindata$reduceres)[setdiff(row.names(t(Maindata$reduceres)),trimcell),]
+                        if (res$G == 1 || length(MSTorder)==1) {
+                              TSCANorder <- names(sort(Maindata$reduceres[1,]))
+                        } else {
+                              TSCANorder <- NULL
+                              
+                              for (i in 1:length(MSTorder)) {
+                                    if (i == 1) {
+                                          currentcluid <- MSTorder[i]
+                                          nextcluid <- MSTorder[i + 1]
+                                          currentclucenter <- clucenter[currentcluid,]
+                                          nextclucenter <- clucenter[nextcluid,]
+                                          difvec <- nextclucenter - currentclucenter
+                                          tmppos <- reduceres[names(clusterid[clusterid==currentcluid]),] %*% difvec
+                                          pos <- as.vector(tmppos)
+                                          names(pos) <- row.names(tmppos)
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))                  
+                                    } else if (i == length(MSTorder)) {
+                                          currentcluid <- MSTorder[i]
+                                          lastcluid <- MSTorder[i - 1]
+                                          currentclucenter <- clucenter[currentcluid,]
+                                          lastclucenter <- clucenter[lastcluid,]
+                                          difvec <- currentclucenter - lastclucenter
+                                          tmppos <- reduceres[names(clusterid[clusterid==currentcluid]),] %*% difvec
+                                          pos <- as.vector(tmppos)
+                                          names(pos) <- row.names(tmppos)
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))   
+                                    } else {
+                                          currentcluid <- MSTorder[i]
+                                          nextcluid <- MSTorder[i + 1]
+                                          lastcluid <- MSTorder[i - 1]
+                                          currentclucenter <- clucenter[currentcluid,]
+                                          nextclucenter <- clucenter[nextcluid,]
+                                          lastclucenter <- clucenter[lastcluid,]
+                                          clupoints <- names(clusterid[clusterid==currentcluid])
+                                          distlast <- rowSums((reduceres[clupoints,]-lastclucenter)^2)
+                                          distnext <- rowSums((reduceres[clupoints,]-nextclucenter)^2)
+                                          lastpoints <- names(which(distlast < distnext))
+                                          nextpoints <- names(which(distlast >= distnext))
+                                          
+                                          difvec <- currentclucenter - lastclucenter
+                                          tmppos <- reduceres[lastpoints,] %*% difvec
+                                          pos <- as.vector(tmppos)
+                                          names(pos) <- row.names(tmppos)
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))  
+                                          
+                                          difvec <- nextclucenter - currentclucenter
+                                          tmppos <- reduceres[nextpoints,] %*% difvec
+                                          pos <- as.vector(tmppos)
+                                          names(pos) <- row.names(tmppos)
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))  
+                                    }
+                              }            
+                        }
                         
-                        state <- kmeans(t(Maindata$reduceres),centers=as.numeric(input$OrderingTSPclunum))$cluster
+                        datadist <- dist(t(Maindata$reduceres))
+                        distmat <- as.matrix(datadist)
+                        alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
+                              distmat[TSCANorder[x],TSCANorder[x+1]]
+                        })
                         ptime <- c(0,cumsum(alldist))
                         ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
-                        Maindata$scapdata <- Maindata$pdata <- data.frame(sample_name=datalab,State=state[datalab],Pseudotime=ptime,stringsAsFactors = F)
+                        Maindata$scapdata <- Maindata$pdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)
                   } else if (input$Orderingptimechoosemethod=="PC" && !is.null(input$OrderingPCclunum)) {
                         coord <- t(Maindata$reduceres)
                         w <- rep(1,nrow(coord))
@@ -430,32 +512,32 @@ shinyServer(function(input, output,session) {
             }
       })
       
-      output$OrderingMSTmarkerui <- renderUI({
-            selectInput("OrderingMSTmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
+      output$OrderingMonoclemarkerui <- renderUI({
+            selectInput("OrderingMonoclemarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
       })
       
-      output$OrderingTSPmarkerui <- renderUI({
-            selectInput("OrderingTSPmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
+      output$OrderingTSCANmarkerui <- renderUI({
+            selectInput("OrderingTSCANmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
       })
       
-      output$OrderingMSTrootcellui <- renderUI({
-            selectInput("OrderingMSTrootcell","select root cell",choices = colnames(Maindata$procdata))
+      output$OrderingMonoclerootcellui <- renderUI({
+            selectInput("OrderingMonoclerootcell","select root cell",choices = colnames(Maindata$procdata))
       })
       
-      MSTdrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
+      Monocledrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
             x = 1
             y = 2
             color_by = "State"
-            show_tree = input$OrderingMSTshow_tree
-            show_backbone = input$OrderingMSTshow_backbone
-            backbone_color = input$OrderingMSTbackbone_color
-            if (!is.null(input$OrderingMSTmarkertf) && input$OrderingMSTmarkertf) {
-                  markers <- input$OrderingMSTmarker
+            show_tree = input$OrderingMonocleshow_tree
+            show_backbone = input$OrderingMonocleshow_backbone
+            backbone_color = input$OrderingMonoclebackbone_color
+            if (!is.null(input$OrderingMonoclemarkertf) && input$OrderingMonoclemarkertf) {
+                  markers <- input$OrderingMonoclemarker
             } else {
                   markers <- NULL
             }
-            show_cell_names = input$OrderingMSTshow_cell_names
-            cell_name_size = as.numeric(input$OrderingMSTcell_name_size)
+            show_cell_names = input$OrderingMonocleshow_cell_names
+            cell_name_size = as.numeric(input$OrderingMonoclecell_name_size)
             
             lib_info_with_pseudo <- Maindata$scapdata
             lib_info_with_pseudo$State <- factor(lib_info_with_pseudo$State)
@@ -464,14 +546,14 @@ shinyServer(function(input, output,session) {
             colnames(ica_space_df) <- c("ICA_dim_1", "ICA_dim_2")
             ica_space_df$sample_name <- row.names(ica_space_df)
             ica_space_with_state_df <- merge(ica_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")
-            dp_mst <- Maindata$dp_mst
-            edge_list <- as.data.frame(get.edgelist(dp_mst))
+            dp_Monocle <- Maindata$dp_Monocle
+            edge_list <- as.data.frame(get.edgelist(dp_Monocle))
             colnames(edge_list) <- c("source", "target")
             edge_df <- merge(ica_space_with_state_df, edge_list, by.x = "sample_name", by.y = "source", all = TRUE)
             edge_df <- rename(edge_df, c(ICA_dim_1 = "source_ICA_dim_1", ICA_dim_2 = "source_ICA_dim_2"))
             edge_df <- merge(edge_df, ica_space_with_state_df[, c("sample_name", "ICA_dim_1", "ICA_dim_2")], by.x = "target", by.y = "sample_name", all = TRUE)
             edge_df <- rename(edge_df, c(ICA_dim_1 = "target_ICA_dim_1", ICA_dim_2 = "target_ICA_dim_2"))
-            diam <- as.data.frame(as.vector(V(dp_mst)[get.diameter(dp_mst, weights = NA)]$name))
+            diam <- as.data.frame(as.vector(V(dp_Monocle)[get.diameter(dp_Monocle, weights = NA)]$name))
             colnames(diam) <- c("sample_name")
             diam <- arrange(merge(ica_space_with_state_df, diam, by.x = "sample_name", by.y = "sample_name"), Pseudotime)
             if (!is.null(markers)) {
@@ -512,16 +594,16 @@ shinyServer(function(input, output,session) {
             g 
       }
       
-      TSPdrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
+      TSCANdrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
             x = 1
             y = 2
             color_by = "State"
             
-            show_tree = input$OrderingTSPshow_tree
-            show_cell_names = input$OrderingTSPshow_cell_names
-            cell_name_size = as.numeric(input$OrderingTSPcell_name_size)
-            if (!is.null(input$OrderingTSPmarkertf) && input$OrderingTSPmarkertf) {
-                  markers <- input$OrderingTSPmarker
+            show_tree = input$OrderingTSCANshow_tree
+            show_cell_names = input$OrderingTSCANshow_cell_names
+            cell_name_size = as.numeric(input$OrderingTSCANcell_name_size)
+            if (!is.null(input$OrderingTSCANmarkertf) && input$OrderingTSCANmarkertf) {
+                  markers <- input$OrderingTSCANmarker
             } else {
                   markers <- NULL
             }
@@ -534,8 +616,8 @@ shinyServer(function(input, output,session) {
             ica_space_df$sample_name <- row.names(ica_space_df)
             ica_space_with_state_df <- merge(ica_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")
             
-            TSPorder <- Maindata$scapdata[,1]
-            edge_list <- data.frame(TSPorder,c(TSPorder[2:length(TSPorder)],TSPorder[1]),stringsAsFactors = F)
+            TSCANorder <- Maindata$scapdata[,1]
+            edge_list <- data.frame(TSCANorder,c(TSCANorder[2:length(TSCANorder)],TSCANorder[1]),stringsAsFactors = F)
             colnames(edge_list) <- c("source", "target")
             edge_df <- merge(ica_space_with_state_df, edge_list, by.x = "sample_name", by.y = "source", all = TRUE)
             edge_df <- rename(edge_df, c(ICA_dim_1 = "source_ICA_dim_1", ICA_dim_2 = "source_ICA_dim_2"))
@@ -548,13 +630,23 @@ shinyServer(function(input, output,session) {
             } else {
                   g <- ggplot(data = edge_df, aes(x = source_ICA_dim_1, y = source_ICA_dim_2))
             }
-            if (show_tree) {
-                  g <- g + geom_segment(aes_string(xend = "target_ICA_dim_1", yend = "target_ICA_dim_2", color = color_by), size = 0.3, linetype = "solid", na.rm = TRUE)
-            }
             g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
             }
+            
+            if (show_tree) {
+                  clulines <- NULL
+                  for (i in 1:(length(Maindata$MSTorder_TSCAN)-1)) {
+                        clulines <- rbind(clulines, c(Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i],],Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i+1],]))
+                  }
+                  clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
+                  g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
+                  clucenter <- Maindata$clucenter_TSCAN
+                  clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
+                  g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
+                  
+            }            
             g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
@@ -574,10 +666,10 @@ shinyServer(function(input, output,session) {
       
       output$Orderingptimeshowplot <- renderPlot({
             if (!is.null(Maindata$reduceres)) {
-                  if (input$Orderingptimechoosemethod=="MST" && !is.null(Maindata$dp_mst)) {
-                        MSTdrawplot()
-                  } else if (input$Orderingptimechoosemethod=="TSP" && !is.null(input$OrderingTSPshow_cell_names)) {
-                        TSPdrawplot()
+                  if (input$Orderingptimechoosemethod=="Monocle" && !is.null(Maindata$dp_Monocle)) {
+                        Monocledrawplot()
+                  } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANshow_cell_names)) {
+                        TSCANdrawplot()
                   } else if (input$Orderingptimechoosemethod=="PC") {
                         coord <- t(Maindata$reduceres)
                         if (input$Orderingptimezoomintf) {
@@ -596,7 +688,7 @@ shinyServer(function(input, output,session) {
       #Step 3: starting point
       
       output$Orderingstartmainui <- renderUI({
-            if (input$Orderingptimechoosemethod == "TSP") {
+            if (input$Orderingptimechoosemethod == "TSCAN") {
                   tabsetPanel(
                         tabPanel("Ordering", uiOutput("Orderingstartshowheatui")
                         ),
@@ -796,10 +888,10 @@ shinyServer(function(input, output,session) {
       output$Orderingsaveshowptime <- renderDataTable(Maindata$scapdata)
       
       output$Orderingsaveshowplot <- renderPlot({
-            if (input$Orderingptimechoosemethod=="MST" && !is.null(Maindata$dp_mst)) {
-                  MSTdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle)
-            } else if (input$Orderingptimechoosemethod=="TSP" && !is.null(input$OrderingTSPshow_cell_names)) {
-                  TSPdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle)
+            if (input$Orderingptimechoosemethod=="Monocle" && !is.null(Maindata$dp_Monocle)) {
+                  Monocledrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle)
+            } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANshow_cell_names)) {
+                  TSCANdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle)
             }
       })
       
@@ -811,10 +903,10 @@ shinyServer(function(input, output,session) {
                   } else if (input$Orderingsaveplottype == 'ps') {
                         postscript(file,width=as.numeric(input$Orderingsaveplotfilewidth),height=as.numeric(input$Orderingsaveplotfileheight),paper="special")
                   }
-                  if (input$Orderingptimechoosemethod=="MST") {
-                        print(MSTdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle))
-                  } else if (input$Orderingptimechoosemethod=="TSP") {
-                        print(TSPdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle))
+                  if (input$Orderingptimechoosemethod=="Monocle") {
+                        print(Monocledrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle))
+                  } else if (input$Orderingptimechoosemethod=="TSCAN") {
+                        print(TSCANdrawplot(xlabtext=input$Orderingsaveplotchangexlab,ylabtext=input$Orderingsaveplotchangeylab,titletext=input$Orderingsaveplotchangetitle))
                   }
                   dev.off()
             }
@@ -938,7 +1030,7 @@ shinyServer(function(input, output,session) {
       })
       
       ###  Miscellaneous ###
-            
+      
       observe({
             if (input$MainMenu != "Ordering")
                   updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save"),selected = "reduction")
@@ -1071,13 +1163,6 @@ shinyServer(function(input, output,session) {
                   textInput("Compareordername","Input name for order",paste0("Order_",length(Miscdata$allorder)+1))
             }
       })
-      
-      
-      
-      
-      
-      
-      
       
       
       
@@ -1488,5 +1573,19 @@ shinyServer(function(input, output,session) {
             }
             
       }    
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 })

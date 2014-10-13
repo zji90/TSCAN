@@ -107,17 +107,16 @@ shinyUI(
                                                           ),
                                                           conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
                                                                            wellPanel(
-                                                                                 #radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST","Principal curve"="PC"))
-                                                                                 radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSP","Minimum spanning tree"="MST"))
-                                                                           ),
-                                                                           checkboxInput("Orderingptimetrimtf","Trim branch/cell",value=F),
+                                                                                 #radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("Shortest cell distance"="TSCAN","Minimum spanning tree"="Monocle","Principal curve"="PC"))
+                                                                                 radioButtons("Orderingptimechoosemethod","Choose calculation method",choices=list("TSCAN"="TSCAN","Monocle"="Monocle"))
+                                                                           ),                                                                           
+                                                                           uiOutput("Orderingptimeui"),checkboxInput("Orderingptimetrimtf","Trim branch/cell",value=F),
                                                                            uiOutput("Orderingptimetrimui"),
                                                                            checkboxInput("Orderingptimezoomintf","Zoom in plot",value=F),
                                                                            textInput("Orderingptimescale","Scale pseudotime",value=100),
-                                                                           uiOutput("Orderingptimezoominui"),
-                                                                           uiOutput("Orderingptimeui")
+                                                                           uiOutput("Orderingptimezoominui")
                                                           ),
-                                                          conditionalPanel(condition="input.Orderingchoosestep=='start'&&input.Orderingptimechoosemethod=='TSP'",
+                                                          conditionalPanel(condition="input.Orderingchoosestep=='start'&&input.Orderingptimechoosemethod=='TSCAN'",
                                                                            helpText("Use marker genesets to determine starting point. Average expression value is used for each geneset."),
                                                                            uiOutput("Orderingstartchoosemarkerui"),
                                                                            selectInput("Orderingstartchoosegenetrend","Choose geneset trend",choices = list("Monotone increasing"="increasing","Monotone decreasing"="decreasing","Not clear"="No")),
@@ -279,3 +278,5 @@ shinyUI(
             )
             
       ))
+
+
