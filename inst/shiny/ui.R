@@ -23,7 +23,7 @@ shinyUI(
                                      list("Input dataset"="Input",
                                           "Preprocess"="Preprocess",
                                           "Cell ordering"="Ordering",
-                                          "Differentially expressed genes"="Changepoint",
+                                          "Gene differential analysis and visualization"="Changepoint",
                                           "Miscellaneous"="Miscellaneous",
                                           "About"="About")
                         )
@@ -91,8 +91,8 @@ shinyUI(
                                                           )               
                                          ),
                                          
-                                         conditionalPanel(condition="input.Orderinguploadordering=='0'",
-                                                          radioButtons("Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save")),
+                                         conditionalPanel(condition="input.Orderinguploadordering=='0'",                                                      
+                                                          radioButtons("Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Save results (optional)"="save")),
                                                           conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
                                                                            wellPanel(
                                                                                  radioButtons("Orderingdimredmet","Choose dimension reduction method",c("Principal Component Analysis (PCA)"="PCA","Independent Component Analysis (ICA)"="ICA"))
@@ -146,18 +146,28 @@ shinyUI(
                   conditionalPanel(condition="input.MainMenu=='Changepoint'",
                                    wellPanel(
                                          uiOutput("Changpointpdataselectui"),
-                                         radioButtons("Changepointchoosemethod","",choices = list("Filter differentially expressed genes"="Filter","View gene expression"="View")),
-                                         conditionalPanel(condition="input.Changepointchoosemethod=='Filter'",
-                                                          helpText("Filter differentially expressed genes. P-values are adjusted for multiple testing using FDR."),
+                                         radioButtons("Changepointchoosemethod","",choices = list("Gene differential expression analysis"="Difexpr","View gene expression"="View")),
+                                         conditionalPanel(condition="input.Changepointchoosemethod=='Difexpr'",
+                                                          helpText("Likelihood ratio test of comparing GAM and constant fit models. P-values are adjusted for multiple testing using FDR."),
                                                           p(actionButton("Changepointfilterbutton","Calculate adjusted p-value")),
                                                           textInput("Changpointfilterfdrval","Select FDR cutoff",value=0.5),
-                                                          radioButtons("Changpointfiltershowresultopt","",choices=list("Show all results"="all","Show results after filtering"="filtering")),
-                                                          selectInput("Changepointsavepvaltabletype","Choose file type",choices = c("txt","csv")),
-                                                          p(downloadButton("Changpointsavepvaltable"))
+                                                          radioButtons("Changpointfiltershowresultopt","",choices=list("Show all results"="all","Show filtered results"="filtering")),
+                                                          wellPanel(
+                                                                helpText("Save results"),
+                                                                selectInput("Changepointsavepvaltabletype","Choose file type",choices = c("txt","csv")),
+                                                                p(downloadButton("Changpointsavepvaltable"))
+                                                          )
                                          ),
                                          conditionalPanel(condition="input.Changepointchoosemethod=='View'",
                                                           uiOutput("Changepointviewgeneselectui"),
-                                                          checkboxInput("Changepointviewshowstatus","Show cell status",value=T)
+                                                          uiOutput("Changepointviewmethodui"),
+                                                          wellPanel(
+                                                                helpText("Save plots"),
+                                                                selectInput("Changepointviewplottype","Choose plot type",choices = c("pdf","ps")),
+                                                                textInput("Changepointviewfilewidth","Enter plot width (inches)",12),
+                                                                textInput("Changepointviewfileheight","Enter plot height (inches)",12),
+                                                                p(downloadButton("Changepointviewsaveplot"))
+                                                          )
                                          )
                                    )
                   ),

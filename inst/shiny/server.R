@@ -132,7 +132,7 @@ shinyServer(function(input, output,session) {
       
       observe({
             if (input$MainMenu != "Ordering")
-                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save"),selected = "reduction")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Save results (optional)"="save"),selected = "reduction")
       })
       
       #upload own cell ordering
@@ -685,181 +685,181 @@ shinyServer(function(input, output,session) {
       
       output$Orderingptimeshowptime <- renderDataTable(Maindata$scapdata)
       
-      #Step 3: starting point
-      
-      output$Orderingstartmainui <- renderUI({
-            if (input$Orderingptimechoosemethod == "TSCAN") {
-                  tabsetPanel(
-                        tabPanel("Ordering", uiOutput("Orderingstartshowheatui")
-                        ),
-                        tabPanel("Genesets",dataTableOutput("Orderingstartsuggestshowgeneset")),
-                        tabPanel("Pseudotime",dataTableOutput("Orderingstartsuggestshowpseudotime"))
-                  )
-            } else {
-                  h5("This function is not available for minimum spanning tree approach.")
-            }
-      })
-      
-      output$Orderingstartchoosemarkerui <- renderUI({
-            if (!is.null(Maindata$procdata))
-                  selectInput("Orderingstartchoosemarker","select genes",choices = row.names(Maindata$rawdata),multiple = T)
-      })
-      
-      observe({
-            if (!is.null(input$Orderingstartaddbutton) && input$Orderingstartaddbutton > 0) {
-                  isolate({
-                        if (is.null(Maindata$fullstartgeneset)) {
-                              Maindata$fullstartgeneset <- data.frame(gene=input$Orderingstartchoosemarker,trend=input$Orderingstartchoosegenetrend,genesetname="Geneset 1",stringsAsFactors = F)
-                        } else {
-                              genesetid <- max(as.numeric(sub("Geneset ","",unique(Maindata$fullstartgeneset$genesetname))))+1
-                              Maindata$fullstartgeneset <- rbind(Maindata$fullstartgeneset,data.frame(gene=input$Orderingstartchoosemarker,trend=input$Orderingstartchoosegenetrend,genesetname=paste("Geneset",genesetid),stringsAsFactors = F))
-                        }
-                  })                        
-            }          
-      })
-      
-      output$Orderingstartincludegenesetui <- renderUI({
-            selectInput("Orderingstartincludegeneset","Select geneset to include",choices = unique(Maindata$fullstartgeneset$genesetname),multiple = T,selected = unique(Maindata$fullstartgeneset$genesetname))
-      })
-      
-      observe({
-            if (!is.null(Maindata$fullstartgeneset) && !is.null(input$Orderingstartincludegeneset)) {
-                  Maindata$startgeneset <- Maindata$fullstartgeneset[Maindata$fullstartgeneset$genesetname %in% input$Orderingstartincludegeneset,]      
-                  increaseexpr <- NULL
-                  increasename <- NULL
-                  decreaseexpr <- NULL
-                  decreasename <- NULL
-                  for (i in unique(Maindata$startgeneset$genesetname)) {
-                        tmp <- Maindata$startgeneset[Maindata$startgeneset$genesetname == i,]             
-                        if (tmp[1,2] != "No") {
-                              tmpexpr <- Maindata$rawlogdata[tmp[,1],,drop=F]
-                              if (input$Orderingstartscalegeneset)
-                                    tmpexpr <- t(scale(t(tmpexpr)))
-                              tmpexpr <- colMeans(tmpexpr)
-                              
-                              if (tmp[1,2] == "increasing") {
-                                    increaseexpr <- rbind(increaseexpr,tmpexpr)
-                                    increasename <- c(increasename, i)
-                              } else if (tmp[1,2] == "decreasing") {
-                                    decreaseexpr <- rbind(decreaseexpr,tmpexpr)
-                                    decreasename <- c(decreasename, i)
-                              }
-                        }                        
-                  }
-                  row.names(increaseexpr) <- increasename
-                  row.names(decreaseexpr) <- decreasename
-                  Maindata$increaseexpr <- increaseexpr
-                  Maindata$decreaseexpr <- decreaseexpr                                          
-            }
-      })
-      
-      observe({
-            if (input$Orderingchoosestep=='start' && !is.null(input$Orderingstartslider) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
-                  pdata <- Maindata$pdata
-                  pdata <- pdata[order(pdata$Pseudotime),]
-                  start <- as.numeric(input$Orderingstartslider)
-                  if (start == 1) {
-                        order <- 1:nrow(pdata)
-                  } else {
-                        order <- c(start:(nrow(pdata)),1:(start-1))
-                  }
-                  if (input$Orderingstartflip)
-                        order <- rev(order)
-                  pdata <- pdata[order,]
-                  datadist <- dist(t(Maindata$reduceres))
-                  distmat <- as.matrix(datadist)
-                  alldist <- sapply(1:(nrow(pdata)-1), function(x) {
-                        distmat[pdata[x,1],pdata[x+1,1]]
-                  })
-                  ptime <- c(0,cumsum(alldist))
-                  ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
-                  pdata[,3] <- ptime
-                  Maindata$scapdata <- pdata
-            }
-      })
-      
-      observe({
-            if (input$Orderingchoosestep=='start' && !is.null(Maindata$pdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
-                  pdata <- Maindata$pdata[,-2]
-                  pdata <- pdata[order(pdata$Pseudotime),]
-                  if (is.null(Maindata$decreaseexpr)) {
-                        allexpr <- Maindata$increaseexpr
-                  } else {
-                        allexpr <- rbind(Maindata$increaseexpr,-Maindata$decreaseexpr)     
-                  }
-                  allres <- NULL
-                  for (flip in c(TRUE,FALSE)) {
-                        for (start in 1:nrow(pdata)) {
-                              if (start == 1) {
-                                    order <- 1:nrow(pdata)
-                              } else {
-                                    order <- c(start:(nrow(pdata)),1:(start-1))
-                              }
-                              if (flip)
-                                    order <- rev(order)            
-                              cellorder <- pdata[order,1]                              
-                              pcos <- sum(apply(allexpr[,cellorder,drop=F],1,function(expr) {
-                                    sum(sapply(1:(length(expr)-1),function(x) {
-                                          sum(expr[(x+1):length(expr)] - expr[x])
-                                    }))                                    
-                              }))
-                              allres <- rbind(allres,c(start,flip,pcos))
-                        }
-                  }
-                  Maindata$Orderingsuggestres <- allres
-            }
-      })
-      
-      output$Orderingstartshowheatmap <- renderPlot({
-            if (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr)) {
-                  allexpr <- rbind(Maindata$increaseexpr,Maindata$decreaseexpr)
-                  par(mar=c(0,0,0,0))
-                  if (nrow(allexpr) == 1) {
-                        plot(allexpr[,Maindata$scapdata[,1]])
-                  } else {
-                        image(t(allexpr[,Maindata$scapdata[,1]]),axes=F,col=bluered(100))      
-                        names <- rev(row.names(allexpr))
-                        dim <- length(names)
-                        pos <- seq(0,1,length.out=dim)
-                        for (i in 1:dim) {
-                              text(0.8,pos[i],names[i],cex=1.3)
-                        }
-                  }
-            }            
-      })
-      
-      output$Orderingstartshowheatui <- renderUI({
-            if (!is.null(Maindata$procdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
-                  tagList(                  
-                        p(actionButton("Orderingstartsetoptimalbutton","Set optimal value")),
-                        checkboxInput("Orderingstartflip","Flip the ordering"),
-                        sliderInput("Orderingstartslider","Slide to select the starting point",min=1,max=ncol(Maindata$procdata),step=1,value=1,width='800px'),
-                        plotOutput("Orderingstartshowheatmap",width='800px'),
-                        p(textOutput("Orderingstartsuggestshowres"))
-                  )      
-            }
-      })
-      
-      observe({
-            if (!is.null(input$Orderingstartsetoptimalbutton) && input$Orderingstartsetoptimalbutton) {
-                  isolate({
-                        maxpos <- Maindata$Orderingsuggestres[which.max(Maindata$Orderingsuggestres[,3]),]
-                        updateCheckboxInput(session = session,"Orderingstartflip",value=as.logical(maxpos[2]))
-                        updateSliderInput(session = session, "Orderingstartslider",value=as.integer(maxpos[1]))
-                  })
-            }
-      })
-      
-      output$Orderingstartsuggestshowres <- renderText({
-            if (!is.null(input$Orderingstartsetoptimalbutton)) {
-                  pcos <- Maindata$Orderingsuggestres[Maindata$Orderingsuggestres[,1]== as.numeric(input$Orderingstartslider) & Maindata$Orderingsuggestres[,2] == input$Orderingstartflip,3]
-                  paste("Pseudotemporal cell ordering score:",pcos)      
-            }
-      })
-      
-      output$Orderingstartsuggestshowgeneset <- renderDataTable(Maindata$fullstartgeneset)
-      
-      output$Orderingstartsuggestshowpseudotime <- renderDataTable(Maindata$scapdata)
+      #       #Step 3: starting point
+      #       
+      #       output$Orderingstartmainui <- renderUI({
+      #             if (input$Orderingptimechoosemethod == "TSCAN") {
+      #                   tabsetPanel(
+      #                         tabPanel("Ordering", uiOutput("Orderingstartshowheatui")
+      #                         ),
+      #                         tabPanel("Genesets",dataTableOutput("Orderingstartsuggestshowgeneset")),
+      #                         tabPanel("Pseudotime",dataTableOutput("Orderingstartsuggestshowpseudotime"))
+      #                   )
+      #             } else {
+      #                   h5("This function is not available for minimum spanning tree approach.")
+      #             }
+      #       })
+      #       
+      #       output$Orderingstartchoosemarkerui <- renderUI({
+      #             if (!is.null(Maindata$procdata))
+      #                   selectInput("Orderingstartchoosemarker","select genes",choices = row.names(Maindata$rawdata),multiple = T)
+      #       })
+      #       
+      #       observe({
+      #             if (!is.null(input$Orderingstartaddbutton) && input$Orderingstartaddbutton > 0) {
+      #                   isolate({
+      #                         if (is.null(Maindata$fullstartgeneset)) {
+      #                               Maindata$fullstartgeneset <- data.frame(gene=input$Orderingstartchoosemarker,trend=input$Orderingstartchoosegenetrend,genesetname="Geneset 1",stringsAsFactors = F)
+      #                         } else {
+      #                               genesetid <- max(as.numeric(sub("Geneset ","",unique(Maindata$fullstartgeneset$genesetname))))+1
+      #                               Maindata$fullstartgeneset <- rbind(Maindata$fullstartgeneset,data.frame(gene=input$Orderingstartchoosemarker,trend=input$Orderingstartchoosegenetrend,genesetname=paste("Geneset",genesetid),stringsAsFactors = F))
+      #                         }
+      #                   })                        
+      #             }          
+      #       })
+      #       
+      #       output$Orderingstartincludegenesetui <- renderUI({
+      #             selectInput("Orderingstartincludegeneset","Select geneset to include",choices = unique(Maindata$fullstartgeneset$genesetname),multiple = T,selected = unique(Maindata$fullstartgeneset$genesetname))
+      #       })
+      #       
+      #       observe({
+      #             if (!is.null(Maindata$fullstartgeneset) && !is.null(input$Orderingstartincludegeneset)) {
+      #                   Maindata$startgeneset <- Maindata$fullstartgeneset[Maindata$fullstartgeneset$genesetname %in% input$Orderingstartincludegeneset,]      
+      #                   increaseexpr <- NULL
+      #                   increasename <- NULL
+      #                   decreaseexpr <- NULL
+      #                   decreasename <- NULL
+      #                   for (i in unique(Maindata$startgeneset$genesetname)) {
+      #                         tmp <- Maindata$startgeneset[Maindata$startgeneset$genesetname == i,]             
+      #                         if (tmp[1,2] != "No") {
+      #                               tmpexpr <- Maindata$rawlogdata[tmp[,1],,drop=F]
+      #                               if (input$Orderingstartscalegeneset)
+      #                                     tmpexpr <- t(scale(t(tmpexpr)))
+      #                               tmpexpr <- colMeans(tmpexpr)
+      #                               
+      #                               if (tmp[1,2] == "increasing") {
+      #                                     increaseexpr <- rbind(increaseexpr,tmpexpr)
+      #                                     increasename <- c(increasename, i)
+      #                               } else if (tmp[1,2] == "decreasing") {
+      #                                     decreaseexpr <- rbind(decreaseexpr,tmpexpr)
+      #                                     decreasename <- c(decreasename, i)
+      #                               }
+      #                         }                        
+      #                   }
+      #                   row.names(increaseexpr) <- increasename
+      #                   row.names(decreaseexpr) <- decreasename
+      #                   Maindata$increaseexpr <- increaseexpr
+      #                   Maindata$decreaseexpr <- decreaseexpr                                          
+      #             }
+      #       })
+      #       
+      #       observe({
+      #             if (input$Orderingchoosestep=='start' && !is.null(input$Orderingstartslider) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
+      #                   pdata <- Maindata$pdata
+      #                   pdata <- pdata[order(pdata$Pseudotime),]
+      #                   start <- as.numeric(input$Orderingstartslider)
+      #                   if (start == 1) {
+      #                         order <- 1:nrow(pdata)
+      #                   } else {
+      #                         order <- c(start:(nrow(pdata)),1:(start-1))
+      #                   }
+      #                   if (input$Orderingstartflip)
+      #                         order <- rev(order)
+      #                   pdata <- pdata[order,]
+      #                   datadist <- dist(t(Maindata$reduceres))
+      #                   distmat <- as.matrix(datadist)
+      #                   alldist <- sapply(1:(nrow(pdata)-1), function(x) {
+      #                         distmat[pdata[x,1],pdata[x+1,1]]
+      #                   })
+      #                   ptime <- c(0,cumsum(alldist))
+      #                   ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
+      #                   pdata[,3] <- ptime
+      #                   Maindata$scapdata <- pdata
+      #             }
+      #       })
+      #       
+      #       observe({
+      #             if (input$Orderingchoosestep=='start' && !is.null(Maindata$pdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
+      #                   pdata <- Maindata$pdata[,-2]
+      #                   pdata <- pdata[order(pdata$Pseudotime),]
+      #                   if (is.null(Maindata$decreaseexpr)) {
+      #                         allexpr <- Maindata$increaseexpr
+      #                   } else {
+      #                         allexpr <- rbind(Maindata$increaseexpr,-Maindata$decreaseexpr)     
+      #                   }
+      #                   allres <- NULL
+      #                   for (flip in c(TRUE,FALSE)) {
+      #                         for (start in 1:nrow(pdata)) {
+      #                               if (start == 1) {
+      #                                     order <- 1:nrow(pdata)
+      #                               } else {
+      #                                     order <- c(start:(nrow(pdata)),1:(start-1))
+      #                               }
+      #                               if (flip)
+      #                                     order <- rev(order)            
+      #                               cellorder <- pdata[order,1]                              
+      #                               pcos <- sum(apply(allexpr[,cellorder,drop=F],1,function(expr) {
+      #                                     sum(sapply(1:(length(expr)-1),function(x) {
+      #                                           sum(expr[(x+1):length(expr)] - expr[x])
+      #                                     }))                                    
+      #                               }))
+      #                               allres <- rbind(allres,c(start,flip,pcos))
+      #                         }
+      #                   }
+      #                   Maindata$Orderingsuggestres <- allres
+      #             }
+      #       })
+      #       
+      #       output$Orderingstartshowheatmap <- renderPlot({
+      #             if (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr)) {
+      #                   allexpr <- rbind(Maindata$increaseexpr,Maindata$decreaseexpr)
+      #                   par(mar=c(0,0,0,0))
+      #                   if (nrow(allexpr) == 1) {
+      #                         plot(allexpr[,Maindata$scapdata[,1]])
+      #                   } else {
+      #                         image(t(allexpr[,Maindata$scapdata[,1]]),axes=F,col=bluered(100))      
+      #                         names <- rev(row.names(allexpr))
+      #                         dim <- length(names)
+      #                         pos <- seq(0,1,length.out=dim)
+      #                         for (i in 1:dim) {
+      #                               text(0.8,pos[i],names[i],cex=1.3)
+      #                         }
+      #                   }
+      #             }            
+      #       })
+      #       
+      #       output$Orderingstartshowheatui <- renderUI({
+      #             if (!is.null(Maindata$procdata) && (!is.null(Maindata$increaseexpr) || !is.null(Maindata$decreaseexpr))) {
+      #                   tagList(                  
+      #                         p(actionButton("Orderingstartsetoptimalbutton","Set optimal value")),
+      #                         checkboxInput("Orderingstartflip","Flip the ordering"),
+      #                         sliderInput("Orderingstartslider","Slide to select the starting point",min=1,max=ncol(Maindata$procdata),step=1,value=1,width='800px'),
+      #                         plotOutput("Orderingstartshowheatmap",width='800px'),
+      #                         p(textOutput("Orderingstartsuggestshowres"))
+      #                   )      
+      #             }
+      #       })
+      #       
+      #       observe({
+      #             if (!is.null(input$Orderingstartsetoptimalbutton) && input$Orderingstartsetoptimalbutton) {
+      #                   isolate({
+      #                         maxpos <- Maindata$Orderingsuggestres[which.max(Maindata$Orderingsuggestres[,3]),]
+      #                         updateCheckboxInput(session = session,"Orderingstartflip",value=as.logical(maxpos[2]))
+      #                         updateSliderInput(session = session, "Orderingstartslider",value=as.integer(maxpos[1]))
+      #                   })
+      #             }
+      #       })
+      #       
+      #       output$Orderingstartsuggestshowres <- renderText({
+      #             if (!is.null(input$Orderingstartsetoptimalbutton)) {
+      #                   pcos <- Maindata$Orderingsuggestres[Maindata$Orderingsuggestres[,1]== as.numeric(input$Orderingstartslider) & Maindata$Orderingsuggestres[,2] == input$Orderingstartflip,3]
+      #                   paste("Pseudotemporal cell ordering score:",pcos)      
+      #             }
+      #       })
+      #       
+      #       output$Orderingstartsuggestshowgeneset <- renderDataTable(Maindata$fullstartgeneset)
+      #       
+      #       output$Orderingstartsuggestshowpseudotime <- renderDataTable(Maindata$scapdata)
       
       #save results
       
@@ -941,46 +941,60 @@ shinyServer(function(input, output,session) {
       observe({
             if (!is.null(input$Changepointfilterbutton) && input$Changepointfilterbutton > 0) {
                   isolate({
-                        tmpdata <- Maindata$procdata[,Maindata$finalpdata[,1]]
-                        ptime <- Maindata$finalpdata[,3]
-                        i <- 0
-                        filterpval <- apply(tmpdata,1,function(x) {                                                            
-                              i <<- i + 1
-                              Maindata$filtercalculatecount <<- i
-                              anova(gam(x~s(ptime,k=3)),lm(x~1))$s.table[4]
+                        progress <- shiny::Progress$new(session, min=1, max=1)
+                        on.exit(progress$close())
+                        
+                        progress$set(message = 'Calculation in progress')
+                        
+                        for (i in 1:nrow(Maindata$rawlogdata)) {
+                              progress$set(value = i)
+                              Sys.sleep(0.2)
+                        }
+                        tmpdata <- Maindata$rawlogdata[,Maindata$finalpdata[,1]]
+                        ptime <- 1:ncol(tmpdata)
+                        
+                        filterpval <- apply(tmpdata,1,function(x) {                                                                                          
+                              if (sum(x) == 0) {
+                                    1
+                              } else {
+                                    model <- mgcv::gam(x~s(ptime,k=3))
+                                    pchisq(model$null.deviance - model$deviance, model$df.null - model$df.residual,lower.tail = F)                  
+                              }   
                         })
-                        Maindata$filteradjpval <- p.adjust(filterpval,method="fdr")                        
+                        Maindata$filteradjpval <- p.adjust(filterpval,method="fdr")   
+                        Maindata$filtercalculatestatus <- "End"
                   })
             }
       })
       
       observe({
             if (!is.null(Maindata$filteradjpval)) {
-                  Maindata$filterdata <- Maindata$procdata[Maindata$filteradjpval < as.numeric(input$Changpointfilterfdrval),Maindata$finalpdata[,1]]
-                  Maindata$filterresalltable <- data.frame(GENE=row.names(Maindata$procdata),adjusted.p.value=Maindata$filteradjpval)      
+                  Maindata$filterdata <- Maindata$rawlogdata[Maindata$filteradjpval < as.numeric(input$Changpointfilterfdrval),Maindata$finalpdata[,1]]
+                  Maindata$filterresalltable <- data.frame(GENE=row.names(Maindata$rawlogdata),adjusted.p.value=Maindata$filteradjpval)      
                   Maindata$filterrestable <- data.frame(GENE=row.names(Maindata$filterdata),adjusted.p.value=Maindata$filteradjpval[Maindata$filteradjpval < as.numeric(input$Changpointfilterfdrval)])      
             }
       })
       
       output$Changpointfiltersummaryui <- renderUI({
             if (!is.null(Maindata$filterdata) && nrow(Maindata$filterdata)!=0)
-                  p(paste(nrow(Maindata$filterdata),"genes out of",nrow(Maindata$procdata),"genes are differentially expressed, which is",round(nrow(Maindata$filterdata)/nrow(Maindata$procdata)*100,3),"percent."))
+                  p(paste(nrow(Maindata$filterdata),"genes out of",nrow(Maindata$rawlogdata),"genes are differentially expressed, which is",round(nrow(Maindata$filterdata)/nrow(Maindata$procdata)*100,3),"percent."))
       })      
       
       output$Changpointfiltercalculatecomplete <- renderText({
-            if (!is.null(Maindata$filtercalculatecount) && Maindata$filtercalculatecount == nrow(Maindata$procdata))
-                  "Calculation Completed!"
+            if (!is.null(Maindata$filtercalculatestatus) && Maindata$filtercalculatestatus == "End") {
+                  "Calculation completed!"
+            }
       })
       
       output$Changpointmainui <- renderUI({
-            if (input$Changepointchoosemethod == "Filter") {
+            if (input$Changepointchoosemethod == "Difexpr") {
                   tagList(
                         textOutput("Changpointfiltercalculatecomplete"),
                         uiOutput("Changpointfiltersummaryui"),
                         dataTableOutput("ChangepointFiltershowresult")
                   )
             } else {
-                  plotOutput("Changepointviewshowplot",width = "800px",height = "800px")
+                  plotOutput("Changepointviewshowplot",width = "100%",height=ifelse(length(input$ChangepointViewgeneselect)==1,800,ifelse(!is.null(input$Changepointviewmethod) && input$Changepointviewmethod, 400,800*length(input$ChangepointViewgeneselect))))
             }
             
       })
@@ -1014,26 +1028,56 @@ shinyServer(function(input, output,session) {
       )
       
       output$Changepointviewgeneselectui <- renderUI({            
-            selectInput("ChangepointViewgeneselect","Select gene",choices = row.names(Maindata$procdata))
+            selectInput("ChangepointViewgeneselect","Select gene",choices = row.names(Maindata$rawlogdata),multiple = T)
       })
       
-      output$Changepointviewshowplot <- renderPlot({
-            if (nchar(input$ChangepointViewgeneselect)!=0) {
-                  tmpdata <- Maindata$procdata[input$ChangepointViewgeneselect,Maindata$finalpdata[,1]]
-                  ptime <- Maindata$finalpdata[,3]
-                  if (input$Changepointviewshowstatus) {
-                        plot(ptime,tmpdata,xlab="Pseudotime",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2])      
+      output$Changepointviewmethodui <- renderUI({
+            if (!is.null(input$ChangepointViewgeneselect) && length(input$ChangepointViewgeneselect) > 1) {
+                  checkboxInput("Changepointviewmethod","Display heatmap",value = T)
+            }
+      })
+      
+      Changepointviewplotfunc <- function() {
+            tmpdata <- Maindata$rawlogdata[input$ChangepointViewgeneselect,Maindata$finalpdata[,1]]
+            if (is.vector(tmpdata)) {
+                  plot(1:length(tmpdata),tmpdata,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=input$ChangepointViewgeneselect)      
+            } else {
+                  if (!is.null(input$Changepointviewmethod) && input$Changepointviewmethod) {
+                        heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,srtRow=-45,lwid=c(0.1,1))          
                   } else {
-                        plot(ptime,tmpdata,xlab="Pseudotime",ylab="Expression value",pch=19)      
-                  }
+                        par(mfrow=c(nrow(tmpdata),1))
+                        for (i in 1:nrow(tmpdata)) {                                    
+                              x <- tmpdata[i,]
+                              plot(1:length(x),x,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=row.names(tmpdata)[i])      
+                        }
+                  }                              
+            }
+      }
+      
+      output$Changepointviewshowplot <- renderPlot({
+            if (!is.null(input$ChangepointViewgeneselect) && input$ChangepointViewgeneselect[1]!="") {
+                  Changepointviewplotfunc()                        
             }            
       })
+      
+      output$Changepointviewsaveplot <- downloadHandler(
+            filename = function() { paste0('Gene_expression.',input$Orderingsaveplottype) },
+            content = function(file) {
+                  if (input$Changepointviewplottype == 'pdf') {
+                        pdf(file,width=as.numeric(input$Changepointviewfilewidth),height=as.numeric(input$Changepointviewfileheight))
+                  } else if (input$Changepointviewplottype == 'ps') {
+                        postscript(file,width=as.numeric(input$Changepointviewfilewidth),height=as.numeric(input$Changepointviewfileheight),paper="special")
+                  }                  
+                  Changepointviewplotfunc() 
+                  dev.off()
+            }
+      )
       
       ###  Miscellaneous ###
       
       observe({
             if (input$MainMenu != "Ordering")
-                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Step 3: Manually adjust starting point (optional)"="start","Save results (optional)"="save"),selected = "reduction")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Save results (optional)"="save"),selected = "reduction")
       })
       
       Miscdata <- reactiveValues()
@@ -1178,7 +1222,7 @@ shinyServer(function(input, output,session) {
       
       
       
-      ###monocle internal functions
+      ###Monocle internal functions
 {
             get_next_node_id <- function () {
                   next_node <<- next_node + 1
@@ -1573,19 +1617,19 @@ shinyServer(function(input, output,session) {
             }
             
       }    
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 })
