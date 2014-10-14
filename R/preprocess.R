@@ -16,7 +16,6 @@
 #' @return Matrix or data frame with the same format as the input dataset.
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
-#' @seealso \code{\link{TSPpseudotime}} for examples
 #' @examples
 #' data(lpsdata)
 #' procdata <- preprocess(lpsdata)

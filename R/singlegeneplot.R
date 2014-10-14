@@ -5,27 +5,25 @@
 #' This function plots the expression values of individual genes against given pseudotime
 #'
 #' @param geneexpr The gene expression values. Names should agree with the pseudotime information.
-#' @param pseudotime The pseudotime information. It is typically the first element of the return value of function \code{\link{TSPpseudotime}}.
+#' @param TSCANorder The output of function \code{\link{TSCANorder}}.
 #' @param cell_size Size of cells in the plot.
 #' @return ggplot2 object.
 #' @export
 #' @import ggplot2 mgcv
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
-#' @seealso \code{\link{TSPpseudotime}} for examples
 #' @examples
 #' data(lpsdata)
 #' procdata <- preprocess(lpsdata)
-#' #Choose STAT2 gene expression as marker gene
-#' STAT2expr <- log2(lpsdata["STAT2",]+1)
-#' lpspseudotime <- TSPpseudotime(procdata, geneexpr = STAT2expr)
+#' lpsmclust <- exprmclust(procdata)
+#' lpsorder <- TSCANorder(lpsmclust,orderonly=FALSE,flip=TRUE)
 #' #Choose STAT1 gene expression to plot
-#' STAT1expr <- log2(lpsdata["STAT1",]+1)
-#' singlegeneplot(STAT1expr, lpspseudotime[[1]])
+#' STAT2expr <- log2(lpsdata["STAT2",]+1)
+#' singlegeneplot(STAT2expr, lpsorder)
 
-singlegeneplot <- function(geneexpr, pseudotime, cell_size = 2) {
+singlegeneplot <- function(geneexpr, TSCANorder, cell_size = 2) {
       Pseudotime <- NULL #To overcome No visible binding for global variable Note in R CMD check
-      geneexpr <- geneexpr[pseudotime[,1]]
-      exprdata <- cbind(pseudotime, geneexpr)
+      geneexpr <- geneexpr[TSCANorder[,1]]
+      exprdata <- cbind(TSCANorder, geneexpr)
       exprdata$State <- factor(exprdata$State)
       exprdata$predict <- fitted.values(mgcv::gam(geneexpr ~ s(Pseudotime,k=3),data=exprdata))
       q <- ggplot(aes(Pseudotime, geneexpr), data = exprdata)

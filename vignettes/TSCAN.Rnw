@@ -52,17 +52,23 @@ By default, preprocess will first take log2 on the original dataset after adding
 
 \section{Constructing Pseudotime}
 
-The function TSPpseudotime will perform dimension reduction using principal component analysis and construct a pseudotemporal ordering using TSP algorithm. Because there is no designated starting point of TSP path, it is highly recommended that users specify prior biological information of gene expression to obtain optimal starting point. Here the expression of gene STAT2 is used as prior biological information. In this example the reduced dimension is set to be 2 for better visualization results. If no dimension is specified, TSPpseudotime will automatically choose the optimal dimensionality.
+The function exprmclust will perform dimension reduction using principal component analysis and model-based clustering. 
 
 <<>>=
-STAT2expr <- log2(lpsdata["STAT2",]+1)
-lpspseudotime <- TSPpseudotime(procdata, geneexpr = STAT2expr, dim = 2)
+lpsmclust <- exprmclust(procdata)
 @
 
-Use plotpseudotime function to visualize the constructed TSP based on the data after dimension reduction. The STAT2 expression values are used to define the size of the nodes in the plot.
+Use plotmclust function to visualize the clustering based on the data after dimension reduction.
 
 <<>>=
-plotpseudotime(lpspseudotime, markerexpr = STAT2expr)
+plotmclust(lpsmclust)
+@
+
+Use the TSCANorder function to obtain the TSCAN ordering.
+
+<<>>=
+lpsorder <- TSCANorder(lpsmclust)
+lpsorder
 @
 
 \section{Testing Differentially Expressed Genes}
@@ -70,14 +76,15 @@ plotpseudotime(lpspseudotime, markerexpr = STAT2expr)
 Use difftest function to detect differentially expressed genes given a constructed pseudotemporal ordering. The function will compare fitting a generalized additive model (gam) and fitting a constant. If gam fits significantly better than a constant fit than the gene is supposed to be differentially expressed. Original p-values as well as q-values after adjusting for multiple testing will be the output.
 
 <<>>=
-diffval <- difftest(procdata,lpspseudotime[[1]])
+diffval <- difftest(procdata,lpsorder)
 #Selected differentially expressed genes under qvlue cutoff of 0.05
 head(row.names(diffval)[diffval$qval < 0.05])
 @
 
-Use singlegeneplot function to plot the expression value of a single gene against a given pseudotime.
+Use singlegeneplot function to plot the expression value of a single gene against a given pseudotime. Notice that here orderonly should be set to FALSE.
 <<>>=
-singlegeneplot(STAT2expr, lpspseudotime[[1]])
+STAT2expr <- log2(lpsdata["STAT2",]+1)
+singlegeneplot(STAT2expr, TSCANorder(lpsmclust,flip=TRUE,orderonly=FALSE))
 @
 
 \section{Comparing Different Pseudotemporal Ordering}
@@ -89,9 +96,9 @@ First prepare the ordering information. We want to compare TSP ordering with or 
 <<>>=
 subpopulation <- data.frame(cell = colnames(procdata), sub = ifelse(grepl("Unstimulated",colnames(procdata)),0,1), stringsAsFactors = FALSE)
 #Comparing ordering with or without marker gene information
-order1 <- TSPpseudotime(procdata, geneexpr = STAT2expr, dim = 2)
-order2 <- TSPpseudotime(procdata, dim = 2)
-orders <- list(order1[[1]],order2[[1]])
+order1 <- TSCANorder(lpsmclust)
+order2 <- TSCANorder(lpsmclust, c(1,2,3))
+orders <- list(order1,order2)
 @
 
 Run orderscore function to get the comparison result:

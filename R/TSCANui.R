@@ -9,7 +9,7 @@
 #' However, it is highly recommended that the user interface be launched locally for faster running speed.
 #' 
 #' @export
-#' @import shiny fastICA grid igraph ggplot2 plyr TSP combinat mgcv gplots
+#' @import shiny fastICA grid igraph ggplot2 plyr combinat mgcv gplots
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
 #' @examples
 #' \dontrun{

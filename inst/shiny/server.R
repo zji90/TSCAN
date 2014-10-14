@@ -1033,22 +1033,28 @@ shinyServer(function(input, output,session) {
       
       output$Changepointviewmethodui <- renderUI({
             if (!is.null(input$ChangepointViewgeneselect) && length(input$ChangepointViewgeneselect) > 1) {
-                  checkboxInput("Changepointviewmethod","Display heatmap",value = T)
+                  checkboxInput("Changepointviewmethod","Display heatmap",value = F)
             }
       })
       
       Changepointviewplotfunc <- function() {
             tmpdata <- Maindata$rawlogdata[input$ChangepointViewgeneselect,Maindata$finalpdata[,1]]
             if (is.vector(tmpdata)) {
-                  plot(1:length(tmpdata),tmpdata,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=input$ChangepointViewgeneselect)      
+                  ptime <- 1:length(tmpdata)
+                  plot(ptime,tmpdata,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=input$ChangepointViewgeneselect)      
+                  model <- mgcv::gam(tmpdata~s(ptime,k=3))
+                  lines(ptime,fitted(model))                  
             } else {
                   if (!is.null(input$Changepointviewmethod) && input$Changepointviewmethod) {
-                        heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,srtRow=-45,lwid=c(0.1,1))          
+                        heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,srtRow=-45,lwid=c(0.2,1))          
                   } else {
                         par(mfrow=c(nrow(tmpdata),1))
                         for (i in 1:nrow(tmpdata)) {                                    
                               x <- tmpdata[i,]
+                              ptime <- 1:length(x)
                               plot(1:length(x),x,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=row.names(tmpdata)[i])      
+                              model <- mgcv::gam(x~s(ptime,k=3))
+                              lines(ptime,fitted(model))                  
                         }
                   }                              
             }
@@ -1058,6 +1064,10 @@ shinyServer(function(input, output,session) {
             if (!is.null(input$ChangepointViewgeneselect) && input$ChangepointViewgeneselect[1]!="") {
                   Changepointviewplotfunc()                        
             }            
+      })
+      
+      output$Changepointviewfileheightui <- renderUI({
+            textInput("Changepointviewfileheight","Enter plot height (inches)",value = ifelse(length(input$ChangepointViewgeneselect)==1,12,ifelse(!is.null(input$Changepointviewmethod) && input$Changepointviewmethod, 6,12*length(input$ChangepointViewgeneselect))))
       })
       
       output$Changepointviewsaveplot <- downloadHandler(

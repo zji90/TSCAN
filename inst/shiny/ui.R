@@ -165,7 +165,7 @@ shinyUI(
                                                                 helpText("Save plots"),
                                                                 selectInput("Changepointviewplottype","Choose plot type",choices = c("pdf","ps")),
                                                                 textInput("Changepointviewfilewidth","Enter plot width (inches)",12),
-                                                                textInput("Changepointviewfileheight","Enter plot height (inches)",12),
+                                                                uiOutput("Changepointviewfileheightui"),                                                                
                                                                 p(downloadButton("Changepointviewsaveplot"))
                                                           )
                                          )
@@ -288,5 +288,3 @@ shinyUI(
             )
             
       ))
-
-
