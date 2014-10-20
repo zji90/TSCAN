@@ -63,16 +63,16 @@ shinyServer(function(input, output,session) {
       
       output$Inputshowinstructionui <- renderUI({
             if (input$Inputshowinstructiontf) {
-                  tagList(
+                        wellPanel(
                         h5("Instructions:"),
                         p("Single cell data should be prepared in a matrix-like data format. Each row corresponds to a gene/feature and each column corresponds to a single cell."),
                         p("Notice that each row should have the same number of entries, especially for the header (first row)"),
-                        p("Please make sure the data is correctly read in before any further analysis is conducted. Adjust the options on the left to make changes."),
-                        h5("A typical example of tab-delimited file format is as follows:"),
+                        p("Please make sure the data is correctly read in before any further analysis is conducted. Adjust the options on the left to read in different file formats."),
+                        h5("A typical example of tab-delimited file format:"),
                         p("Gene Cell1  Cell2  Cell3  Cell4"),
                         p("SOX2 0.455  0.543  0.000  2.188"),
                         p("PAT1 0.231  2.792  1.222  0.000")                      
-                  )
+                        )
             }
       })
       
@@ -91,13 +91,11 @@ shinyServer(function(input, output,session) {
                         }
                   }
                   Maindata$fullrawlogdata <- tmpdata
-                  tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),!colnames(tmpdata) %in% input$Preprocessexclude]
+                  tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),]
                   tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
                   Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
             }
       })
-      
-      output$Preprocessexcludeui <- renderUI(selectInput("Preprocessexclude","Selected unwanted cells",multiple = T,choices = colnames(Maindata$rawdata)[-1]))
       
       output$Preprocesshowproctable <- renderDataTable({
             if (!is.null(Maindata$fullprocdata)) {
@@ -115,15 +113,18 @@ shinyServer(function(input, output,session) {
       output$Preprocessstatusui <- renderUI({
             if (!is.null(Maindata$procdata)) {
                   tagList(
-                        p(paste(nrow(Maindata$fullprocdata),"rows out of",nrow(Maindata$rawdata),"rows are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
-                        p(h5("Choose genes to display")),
-                        selectInput("Preprocesschoosegene","Choose gene",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),
-                        p(h5("Data Table:")),
+                        p(h5("Filter summary")),
+                        p(paste(nrow(Maindata$fullprocdata),"genes out of",nrow(Maindata$rawdata),"genes are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
+                        hr(),
+                        p(h5("Choose genes to display:")),
+                        selectInput("Preprocesschoosegene","",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),                        
+                        p(h5("Expression of selected genes:")),
                         dataTableOutput("Preprocesshowproctable"),
+                        hr(),
                         p(h5("Gene level summary table:")),
                         verbatimTextOutput("Preprocesshowgenesummary"),
                         p(h5("Cell level summary table (for all retained genes after filtering):")),
-                        verbatimTextOutput("Preprocesshowcellsummary")
+                        verbatimTextOutput("Preprocesshowcellsummary")                        
                   )
             }
       })
@@ -165,7 +166,7 @@ shinyServer(function(input, output,session) {
             if (input$Orderinguploadshowinstructiontf) {
                   tagList(
                         h5("Instructions:"),
-                        p("Pseudotemporal cell ordering data should contain exactly three columns. First column: cell name (character value). Second column: cell state (numeric value). Third column: Pseudotime (numeric value)"),
+                        p("Cell ordering data should contain exactly three columns. First column: cell name (character value). Second column: cell state (numeric value). Third column: pseudo time (numeric value)"),
                         p("Please ensure the cell names should match exactly to the cell names of the gene expression data, otherwise unpredictable errors may occur."),
                         h5("A typical example of tab-delimited file format is as follows:"),
                         p("Cell   State Pseudotime"),
@@ -229,13 +230,13 @@ shinyServer(function(input, output,session) {
                   wellPanel(
                         radioButtons("Orderingptimetrimmethod","",choices=list("branch/cluster"="branch","cells"="cell","expression values"="expression")),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='branch'",
-                                         selectInput("Orderingptimetrimbranchselect","Select branch id on original plot",choices = sort(unique(Maindata$scapdata$State)),multiple = T)
+                                         selectInput("Orderingptimetrimbranchselect","Select branch/cluster id on original plot",choices = sort(unique(Maindata$scapdata$State)),multiple = T)
                         ),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='cell'",
                                          selectInput("Orderingptimetrimcellselect","Select cell name",choices = colnames(Maindata$procdata),multiple = T)
                         ),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='expression'",
-                                         helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the right."),
+                                         helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the main panel."),
                                          selectInput("Orderingexpressiontrimgene","Gene",choices=row.names(Maindata$rawlogdata)),
                                          radioButtons("Orderingexpressiontrimgtlt","",choices=list("greater than"="greater","smaller than"="smaller")),
                                          textInput("Orderingexpressiontrimvalue","Value",value=0),
@@ -332,26 +333,35 @@ shinyServer(function(input, output,session) {
                   tagList(
                         sliderInput("OrderingMonoclepathnum","Choose number of paths",min=1,max=20,step=1,value=3),
                         checkboxInput("OrderingMonoclereversetf","Reverse the ordering",value=F),
-                        checkboxInput("OrderingMonocleshow_tree","Show tree",value = T),
+                        checkboxInput("OrderingMonocleshow_tree","Show MST",value = T),
                         checkboxInput("OrderingMonocleshow_backbone","Show diameter path (backbone)",value = T),
                         selectInput("OrderingMonoclebackbone_color","Select backbone color",choices = c("black","red","blue","green","yellow")),
                         checkboxInput("OrderingMonocleshow_cell_names","Show cell names",value = T),
                         conditionalPanel(condition="input.OrderingMonocleshow_cell_names=='1'",textInput("OrderingMonoclecell_name_size","Choose the size of cell name labels",value = 3)),
                         checkboxInput("OrderingMonoclemarkertf","Use marker gene to define node size",value=F),
-                        conditionalPanel(condition="input.OrderingMonoclemarkertf=='1'",uiOutput("OrderingMonoclemarkerui")),
+                        conditionalPanel(condition="input.OrderingMonoclemarkertf=='1'",helpText("Node size is defined by gene expression"),uiOutput("OrderingMonoclemarkerui")),
                         checkboxInput("OrderingMonoclerootcelltf","Choose root cell",value=F),
-                        conditionalPanel(condition="input.OrderingMonoclerootcelltf=='1'",uiOutput("OrderingMonoclerootcellui")))                  
+                        conditionalPanel(condition="input.OrderingMonoclerootcelltf=='1'",uiOutput("OrderingMonoclerootcellui")),
+                        sliderInput("OrderingMonoclexcomp","Component displayed on x axis",1,as.numeric(input$Orderingdimredncomp),value=1,step=1),
+                        sliderInput("OrderingMonocleycomp","Component displayed on y axis",1,as.numeric(input$Orderingdimredncomp),value=2,step=1))                  
             } else if (input$Orderingptimechoosemethod=="TSCAN") {
                   tagList(
                         sliderInput("OrderingTSCANclunum","Choose number of cell clusters",min=1,max=20,step=1,value=3),
-                        p(actionButton("OrderingTSCANoptclunum","Optimal cluster number")),
+                        p(actionButton("OrderingTSCANoptclunum","Use optimal cluster number")),
+                        checkboxInput("OrderingTSCANreversetf","Reverse the ordering",value=F),
                         checkboxInput("OrderingTSCANtuneordertf","Manually tune ordering"),
-                        conditionalPanel(condition="input.OrderingTSCANtuneordertf=='1'",textInput("OrderingTSCANtuneorder","Ordering should be seperated by comma")),
-                        checkboxInput("OrderingTSCANshow_tree","Show tree",value = F),                        
+                        conditionalPanel(condition="input.OrderingTSCANtuneordertf=='1'",
+                                         selectInput("OrderingTSCANtuneorderchoose","",choices=list("List cluster order"="order","Use marker gene expression"="gene")),
+                                         conditionalPanel("input.OrderingTSCANtuneorderchoose=='order'",textInput("OrderingTSCANtuneorder","Ordering should be seperated by comma (For example: 1,3,2)")),
+                                         conditionalPanel("input.OrderingTSCANtuneorderchoose=='gene'",helpText("Clusters will be reordered so the averaged marker gene expression of clusters changes monotonically"),selectInput("OrderingTSCANtunegene","Select marker gene",choices = row.names(Maindata$fullrawlogdata)))
+                                         ),
+                        checkboxInput("OrderingTSCANshow_tree","Show MST",value = F),                        
                         checkboxInput("OrderingTSCANshow_cell_names","Show cell name",value=T),
                         conditionalPanel(condition="input.OrderingTSCANshow_cell_names=='1'",textInput("OrderingTSCANcell_name_size","Choose the size of cell name labels",value = 3)),
-                        checkboxInput("OrderingTSCANmarkertf","Use marker gene to define node size",value=F),
-                        conditionalPanel(condition="input.OrderingTSCANmarkertf=='1'",uiOutput("OrderingTSCANmarkerui"))
+                        checkboxInput("OrderingTSCANmarkertf","Visualize marker gene",value=F),
+                        conditionalPanel(condition="input.OrderingTSCANmarkertf=='1'",helpText("Node size is defined by gene expression"),uiOutput("OrderingTSCANmarkerui")),
+                        sliderInput("OrderingTSCANxcomp","Component displayed on x axis",1,as.numeric(input$Orderingdimredncomp),value=1,step=1),
+                        sliderInput("OrderingTSCANycomp","Component displayed on y axis",1,as.numeric(input$Orderingdimredncomp),value=2,step=1) 
                   )
             } else if (input$Orderingptimechoosemethod=="PC") {
                   tagList(
@@ -370,10 +380,21 @@ shinyServer(function(input, output,session) {
       
       output$Orderingptimezoominui <- renderUI({
             if (input$Orderingptimezoomintf && !is.null(Maindata$reduceres)) {
-                  tagList(
-                        sliderInput("Orderingptimezoominxaxis","X-axis range",min=min(Maindata$fullreduceres[1,]),max=max(Maindata$fullreduceres[1,]),value=c(min(Maindata$fullreduceres[1,]),max(Maindata$fullreduceres[1,]))),
-                        sliderInput("Orderingptimezoominyaxis","Y-axis range",min=min(Maindata$fullreduceres[2,]),max=max(Maindata$fullreduceres[2,]),value=c(min(Maindata$fullreduceres[2,]),max(Maindata$fullreduceres[2,])))
-                  )
+                  if (input$Orderingptimechoosemethod=="Monocle") {
+                        x = as.numeric(input$OrderingMonoclexcomp)
+                        y = as.numeric(input$OrderingMonocleycomp)
+                        tagList(
+                              sliderInput("Orderingptimezoominxaxis","X-axis range",min=min(Maindata$fullreduceres[x,]),max=max(Maindata$fullreduceres[x,]),value=c(min(Maindata$fullreduceres[x,]),max(Maindata$fullreduceres[x,]))),
+                              sliderInput("Orderingptimezoominyaxis","Y-axis range",min=min(Maindata$fullreduceres[y,]),max=max(Maindata$fullreduceres[y,]),value=c(min(Maindata$fullreduceres[y,]),max(Maindata$fullreduceres[y,])))
+                        )
+                  } else if (input$Orderingptimechoosemethod=="TSCAN") {
+                        x = as.numeric(input$OrderingTSCANxcomp)
+                        y = as.numeric(input$OrderingTSCANycomp)
+                        tagList(
+                              sliderInput("Orderingptimezoominxaxis","X-axis range",min=min(Maindata$fullreduceres[x,]),max=max(Maindata$fullreduceres[x,]),value=c(min(Maindata$fullreduceres[x,]),max(Maindata$fullreduceres[x,]))),
+                              sliderInput("Orderingptimezoominyaxis","Y-axis range",min=min(Maindata$fullreduceres[y,]),max=max(Maindata$fullreduceres[y,]),value=c(min(Maindata$fullreduceres[y,]),max(Maindata$fullreduceres[y,])))
+                        )
+                  }                  
             }
       })
       
@@ -421,20 +442,37 @@ shinyServer(function(input, output,session) {
                         Maindata$clucenter_TSCAN=clucenter
                         allsp <- shortest.paths(MSTtree)
                         longestsp <- which(allsp == max(allsp), arr.ind = T)
-                        if (input$OrderingTSCANtuneordertf && input$OrderingTSCANtuneorder!="") {                            
-                              Maindata$MSTorder_TSCAN <- MSTorder <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
+                        if (input$OrderingTSCANtuneordertf) { 
+                              if (input$OrderingTSCANtuneorderchoose=='order') {                                    
+                                    if (input$OrderingTSCANtuneorder=="") {
+                                          Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                    } else {
+                                          tmp <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
+                                          tmp <- tmp[tmp <= nrow(clucenter)]
+                                          Maindata$MSTorder_TSCAN <- MSTorder <- tmp            
+                                    }                                    
+                              } else if (input$OrderingTSCANtuneorderchoose=='gene') {
+                                    if (res$G == 1) {
+                                          Maindata$MSTorder_TSCAN <- MSTorder <- 1
+                                    } else {
+                                          meanval <- sapply(1:res$G, function(i) {
+                                                mean(Maindata$rawlogdata[input$OrderingTSCANtunegene,clusterid[clusterid==i]])
+                                          })
+                                          Maindata$MSTorder_TSCAN <- MSTorder <- order(meanval)
+                                    }                                    
+                              }
                         } else {
                               Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
-                        }                                                                    
+                        }   
+                        
                         trimclu <- setdiff(as.vector(V(MSTtree)),MSTorder)
                         row.names(clucenter) <- paste0("clu",1:nrow(clucenter)) 
-                        trimcell <- names(clusterid[clusterid==trimclu])
+                        trimcell <- names(clusterid[clusterid %in% trimclu])
                         reduceres <- t(Maindata$reduceres)[setdiff(row.names(t(Maindata$reduceres)),trimcell),]
                         if (res$G == 1 || length(MSTorder)==1) {
                               TSCANorder <- names(sort(Maindata$reduceres[1,]))
                         } else {
-                              TSCANorder <- NULL
-                              
+                              TSCANorder <- NULL                              
                               for (i in 1:length(MSTorder)) {
                                     if (i == 1) {
                                           currentcluid <- MSTorder[i]
@@ -467,14 +505,12 @@ shinyServer(function(input, output,session) {
                                           distlast <- rowSums((reduceres[clupoints,]-lastclucenter)^2)
                                           distnext <- rowSums((reduceres[clupoints,]-nextclucenter)^2)
                                           lastpoints <- names(which(distlast < distnext))
-                                          nextpoints <- names(which(distlast >= distnext))
-                                          
+                                          nextpoints <- names(which(distlast >= distnext))                                          
                                           difvec <- currentclucenter - lastclucenter
                                           tmppos <- reduceres[lastpoints,] %*% difvec
                                           pos <- as.vector(tmppos)
                                           names(pos) <- row.names(tmppos)
-                                          TSCANorder <- c(TSCANorder,names(sort(pos)))  
-                                          
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))                                            
                                           difvec <- nextclucenter - currentclucenter
                                           tmppos <- reduceres[nextpoints,] %*% difvec
                                           pos <- as.vector(tmppos)
@@ -483,7 +519,8 @@ shinyServer(function(input, output,session) {
                                     }
                               }            
                         }
-                        
+                        if (input$OrderingTSCANreversetf)
+                              TSCANorder <- rev(TSCANorder)
                         datadist <- dist(t(Maindata$reduceres))
                         distmat <- as.matrix(datadist)
                         alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
@@ -491,7 +528,11 @@ shinyServer(function(input, output,session) {
                         })
                         ptime <- c(0,cumsum(alldist))
                         ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
-                        Maindata$scapdata <- Maindata$pdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)
+                        if (res$G == 1 || length(MSTorder)==1) {
+                              Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=1,Pseudotime=ptime,stringsAsFactors = F)      
+                        } else {
+                              Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)      
+                        }                        
                   } else if (input$Orderingptimechoosemethod=="PC" && !is.null(input$OrderingPCclunum)) {
                         coord <- t(Maindata$reduceres)
                         w <- rep(1,nrow(coord))
@@ -513,20 +554,20 @@ shinyServer(function(input, output,session) {
       })
       
       output$OrderingMonoclemarkerui <- renderUI({
-            selectInput("OrderingMonoclemarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
+            selectInput("OrderingMonoclemarker","select marker gene",choices = row.names(Maindata$fullrawlogdata))
       })
       
       output$OrderingTSCANmarkerui <- renderUI({
-            selectInput("OrderingTSCANmarker","select marker gene used for node size",choices = row.names(Maindata$fullrawlogdata))
+            selectInput("OrderingTSCANmarker","select marker gene",choices = row.names(Maindata$fullrawlogdata))
       })
       
       output$OrderingMonoclerootcellui <- renderUI({
             selectInput("OrderingMonoclerootcell","select root cell",choices = colnames(Maindata$procdata))
       })
       
-      Monocledrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
-            x = 1
-            y = 2
+      Monocledrawplot <- function(xlabtext="X",ylabtext="Y",titletext="Pseudotime ordering plot") {
+            x = as.numeric(input$OrderingMonoclexcomp)
+            y = as.numeric(input$OrderingMonocleycomp)
             color_by = "State"
             show_tree = input$OrderingMonocleshow_tree
             show_backbone = input$OrderingMonocleshow_backbone
@@ -587,16 +628,16 @@ shinyServer(function(input, output,session) {
             if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
             } else {
-                  sc1 <- 0.05 * (max(Maindata$fullreduceres[1,])-min(Maindata$fullreduceres[1,]))
-                  sc2 <- 0.05 * (max(Maindata$fullreduceres[2,])-min(Maindata$fullreduceres[2,]))
-                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[1,]) - sc1, max(Maindata$fullreduceres[1,])+sc1),ylim=c(min(Maindata$fullreduceres[2,])-sc2, max(Maindata$fullreduceres[2,])+sc2))                  
+                  sc1 <- 0.05 * (max(Maindata$fullreduceres[x,])-min(Maindata$fullreduceres[x,]))
+                  sc2 <- 0.05 * (max(Maindata$fullreduceres[y,])-min(Maindata$fullreduceres[y,]))
+                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[x,]) - sc1, max(Maindata$fullreduceres[x,])+sc1),ylim=c(min(Maindata$fullreduceres[y,])-sc2, max(Maindata$fullreduceres[y,])+sc2))                  
             }                  
             g 
       }
       
-      TSCANdrawplot <- function(xlabtext="Component 2",ylabtext="Component 1",titletext="Pseudotime ordering plot") {
-            x = 1
-            y = 2
+      TSCANdrawplot <- function(xlabtext="X",ylabtext="Y",titletext="Pseudotime ordering plot") {
+            x = as.numeric(input$OrderingTSCANxcomp)
+            y = as.numeric(input$OrderingTSCANycomp)
             color_by = "State"
             
             show_tree = input$OrderingTSCANshow_tree
@@ -614,28 +655,20 @@ shinyServer(function(input, output,session) {
             ica_space_df <- data.frame(t(S_matrix[c(x, y), ]))
             colnames(ica_space_df) <- c("ICA_dim_1", "ICA_dim_2")
             ica_space_df$sample_name <- row.names(ica_space_df)
-            ica_space_with_state_df <- merge(ica_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")
+            edge_df <- merge(ica_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")
             
-            TSCANorder <- Maindata$scapdata[,1]
-            edge_list <- data.frame(TSCANorder,c(TSCANorder[2:length(TSCANorder)],TSCANorder[1]),stringsAsFactors = F)
-            colnames(edge_list) <- c("source", "target")
-            edge_df <- merge(ica_space_with_state_df, edge_list, by.x = "sample_name", by.y = "source", all = TRUE)
-            edge_df <- rename(edge_df, c(ICA_dim_1 = "source_ICA_dim_1", ICA_dim_2 = "source_ICA_dim_2"))
-            edge_df <- merge(edge_df, ica_space_with_state_df[, c("sample_name", "ICA_dim_1", "ICA_dim_2")], by.x = "target", by.y = "sample_name", all = TRUE)
-            edge_df <- rename(edge_df, c(ICA_dim_1 = "target_ICA_dim_1", ICA_dim_2 = "target_ICA_dim_2"))
             if (!is.null(markers)) {
                   markers_exprs <- data.frame(value=Maindata$rawlogdata[markers, ])
                   edge_df <- merge(edge_df, markers_exprs, by.x = "sample_name", by.y = "row.names")
-                  g <- ggplot(data = edge_df, aes(x = source_ICA_dim_1, y = source_ICA_dim_2, size = log10(value + 0.1)))
+                  g <- ggplot(data = edge_df, aes(x = ICA_dim_1, y = ICA_dim_2, size = log10(value + 0.1)))
             } else {
-                  g <- ggplot(data = edge_df, aes(x = source_ICA_dim_1, y = source_ICA_dim_2))
+                  g <- ggplot(data = edge_df, aes(x = ICA_dim_1, y = ICA_dim_2))
             }
             g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
-            }
-            
-            if (show_tree) {
+            }            
+            if (show_tree && max(Maindata$scapdata$State) > 1) {
                   clulines <- NULL
                   for (i in 1:(length(Maindata$MSTorder_TSCAN)-1)) {
                         clulines <- rbind(clulines, c(Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i],],Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i+1],]))
@@ -644,8 +677,7 @@ shinyServer(function(input, output,session) {
                   g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
                   clucenter <- Maindata$clucenter_TSCAN
                   clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
-                  g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
-                  
+                  g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)                  
             }            
             g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
@@ -657,9 +689,9 @@ shinyServer(function(input, output,session) {
             if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
             } else {
-                  sc1 <- 0.05 * (max(Maindata$fullreduceres[1,])-min(Maindata$fullreduceres[1,]))
-                  sc2 <- 0.05 * (max(Maindata$fullreduceres[2,])-min(Maindata$fullreduceres[2,]))
-                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[1,]) - sc1, max(Maindata$fullreduceres[1,])+sc1),ylim=c(min(Maindata$fullreduceres[2,])-sc2, max(Maindata$fullreduceres[2,])+sc2))
+                  sc1 <- 0.05 * (max(Maindata$fullreduceres[x,])-min(Maindata$fullreduceres[x,]))
+                  sc2 <- 0.05 * (max(Maindata$fullreduceres[y,])-min(Maindata$fullreduceres[y,]))
+                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[x,]) - sc1, max(Maindata$fullreduceres[x,])+sc1),ylim=c(min(Maindata$fullreduceres[y,])-sc2, max(Maindata$fullreduceres[y,])+sc2))
             }  
             g       
       }
@@ -673,9 +705,9 @@ shinyServer(function(input, output,session) {
                   } else if (input$Orderingptimechoosemethod=="PC") {
                         coord <- t(Maindata$reduceres)
                         if (input$Orderingptimezoomintf) {
-                              plot(Maindata$lpcobj,datcol=Maindata$pdata$State,datpch=19,xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
+                              plot(Maindata$lpcobj,datcol=Maindata$scapdata$State,datpch=19,xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
                         } else {
-                              plot(Maindata$lpcobj,datcol=Maindata$pdata$State,datpch=19)
+                              plot(Maindata$lpcobj,datcol=Maindata$scapdata$State,datpch=19)
                         }
                         if (input$OrderingPCshowcellname)
                               text(coord,row.names(coord))     
@@ -912,20 +944,20 @@ shinyServer(function(input, output,session) {
             }
       )
       
-      ### Changpoint ###
+      ### Difftest ###
       
       #choose uploaded pdata or sca pdata
       
-      output$Changpointpdataselectui <- renderUI({
+      output$Difftestpdataselectui <- renderUI({
             if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata)) {
-                  radioButtons("Changepointpdataselect","Select the cell ordering you want to use",choices = list("Uploaded pseudotime"="Uploaded","SCA generated pseudotime"="SCA"))     
+                  radioButtons("Difftestpdataselect","Select the cell ordering you want to use",choices = list("Uploaded pseudotime"="Uploaded","SCA generated pseudotime"="SCA"))     
             }            
       })
       
       observe({
-            if (input$MainMenu=="Changepoint") {
-                  if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata) && !is.null(input$Changepointpdataselect)) {
-                        if (input$Changepointpdataselect == 'Uploaded') {
+            if (input$MainMenu=="Difftest") {
+                  if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata) && !is.null(input$Difftestpdataselect)) {
+                        if (input$Difftestpdataselect == 'Uploaded') {
                               Maindata$finalpdata <- Maindata$uploadpdata
                         } else {
                               Maindata$finalpdata <- Maindata$scapdata
@@ -939,7 +971,7 @@ shinyServer(function(input, output,session) {
       })
       
       observe({
-            if (!is.null(input$Changepointfilterbutton) && input$Changepointfilterbutton > 0) {
+            if (!is.null(input$Difftestbutton) && input$Difftestbutton > 0) {
                   isolate({
                         progress <- shiny::Progress$new(session, min=1, max=1)
                         on.exit(progress$close())
@@ -953,7 +985,7 @@ shinyServer(function(input, output,session) {
                         tmpdata <- Maindata$rawlogdata[,Maindata$finalpdata[,1]]
                         ptime <- 1:ncol(tmpdata)
                         
-                        filterpval <- apply(tmpdata,1,function(x) {                                                                                          
+                        Difftestpval <- apply(tmpdata,1,function(x) {                                                                                          
                               if (sum(x) == 0) {
                                     1
                               } else {
@@ -961,91 +993,132 @@ shinyServer(function(input, output,session) {
                                     pchisq(model$null.deviance - model$deviance, model$df.null - model$df.residual,lower.tail = F)                  
                               }   
                         })
-                        Maindata$filteradjpval <- p.adjust(filterpval,method="fdr")   
-                        Maindata$filtercalculatestatus <- "End"
+                        Maindata$Difftestadjpval <- p.adjust(Difftestpval,method="fdr")   
+                        Maindata$Difftestcalculatestatus <- "End"
                   })
             }
       })
       
       observe({
-            if (!is.null(Maindata$filteradjpval)) {
-                  Maindata$filterdata <- Maindata$rawlogdata[Maindata$filteradjpval < as.numeric(input$Changpointfilterfdrval),Maindata$finalpdata[,1]]
-                  Maindata$filterresalltable <- data.frame(GENE=row.names(Maindata$rawlogdata),adjusted.p.value=Maindata$filteradjpval)      
-                  Maindata$filterrestable <- data.frame(GENE=row.names(Maindata$filterdata),adjusted.p.value=Maindata$filteradjpval[Maindata$filteradjpval < as.numeric(input$Changpointfilterfdrval)])      
+            if (!is.null(Maindata$Difftestadjpval)) {
+                  Maindata$Difftestdata <- Maindata$rawlogdata[Maindata$Difftestadjpval < as.numeric(input$Difftestfdrval),Maindata$finalpdata[,1]]
+                  Maindata$Difftestresalltable <- data.frame(GENE=row.names(Maindata$rawlogdata),adjusted.p.value=Maindata$Difftestadjpval)      
+                  Maindata$Difftestrestable <- data.frame(GENE=row.names(Maindata$Difftestdata),adjusted.p.value=Maindata$Difftestadjpval[Maindata$Difftestadjpval < as.numeric(input$Difftestfdrval)])      
             }
       })
       
-      output$Changpointfiltersummaryui <- renderUI({
-            if (!is.null(Maindata$filterdata) && nrow(Maindata$filterdata)!=0)
-                  p(paste(nrow(Maindata$filterdata),"genes out of",nrow(Maindata$rawlogdata),"genes are differentially expressed, which is",round(nrow(Maindata$filterdata)/nrow(Maindata$procdata)*100,3),"percent."))
+      output$Difftestsummaryui <- renderUI({
+            if (!is.null(Maindata$Difftestdata) && nrow(Maindata$Difftestdata)!=0)
+                  p(paste(nrow(Maindata$Difftestdata),"genes out of",nrow(Maindata$rawlogdata),"genes are differentially expressed, which is",round(nrow(Maindata$Difftestdata)/nrow(Maindata$procdata)*100,3),"percent."))
       })      
       
-      output$Changpointfiltercalculatecomplete <- renderText({
-            if (!is.null(Maindata$filtercalculatestatus) && Maindata$filtercalculatestatus == "End") {
+      output$Difftestcalculatecomplete <- renderText({
+            if (!is.null(Maindata$Difftestcalculatestatus) && Maindata$Difftestcalculatestatus == "End") {
                   "Calculation completed!"
             }
       })
       
-      output$Changpointmainui <- renderUI({
-            if (input$Changepointchoosemethod == "Difexpr") {
-                  tagList(
-                        textOutput("Changpointfiltercalculatecomplete"),
-                        uiOutput("Changpointfiltersummaryui"),
-                        dataTableOutput("ChangepointFiltershowresult")
-                  )
-            } else {
-                  plotOutput("Changepointviewshowplot",width = "100%",height=ifelse(length(input$ChangepointViewgeneselect)==1,800,ifelse(!is.null(input$Changepointviewmethod) && input$Changepointviewmethod, 400,800*length(input$ChangepointViewgeneselect))))
-            }
-            
-      })
-      
-      output$ChangepointFiltershowresult <- renderDataTable({
-            if (!is.null(Maindata$filterdata) && nrow(Maindata$filterdata)!=0)
-                  if (input$Changpointfiltershowresultopt == "all") {
-                        Maindata$filterresalltable   
+      output$Difftestshowresult <- renderDataTable({
+            if (!is.null(Maindata$Difftestdata) && nrow(Maindata$Difftestdata)!=0)
+                  if (input$Difftestshowresultopt == "all") {
+                        Maindata$Difftestresalltable   
                   } else {
-                        Maindata$filterrestable
+                        Maindata$Difftestrestable
                   }                  
       })
       
-      output$Changpointsavepvaltable <- downloadHandler(
-            filename = function() { paste0("Test_for_differentially_expressed.",ifelse(input$Changepointsavepvaltabletype == 'txt','txt','csv')) },
+      output$Difftestsavepvaltable <- downloadHandler(
+            filename = function() { paste0("Test_for_differentially_expressed.",ifelse(input$Difftestsavepvaltabletype == 'txt','txt','csv')) },
             content = function(file) {
-                  if (input$Changepointsavepvaltabletype == 'txt') {
-                        if (input$Changpointfiltershowresultopt == "all") {
-                              write.table(Maindata$filterresalltable,file,row.names=F,quote=F)                              
+                  if (input$Difftestsavepvaltabletype == 'txt') {
+                        if (input$Difftestshowresultopt == "all") {
+                              write.table(Maindata$Difftestresalltable,file,row.names=F,quote=F)                              
                         } else {
-                              write.table(Maindata$filterrestable,file,row.names=F,quote=F)     
+                              write.table(Maindata$Difftestrestable,file,row.names=F,quote=F)     
                         }                          
                   } else {
-                        if (input$Changpointfiltershowresultopt == "all") {
-                              write.csv(Maindata$filterresalltable,file,row.names=F,quote=F)                              
+                        if (input$Difftestshowresultopt == "all") {
+                              write.csv(Maindata$Difftestresalltable,file,row.names=F,quote=F)                              
                         } else {
-                              write.csv(Maindata$filterrestable,file,row.names=F,quote=F)     
+                              write.csv(Maindata$Difftestrestable,file,row.names=F,quote=F)     
                         }
                   }                  
             }
       )
       
-      output$Changepointviewgeneselectui <- renderUI({            
-            selectInput("ChangepointViewgeneselect","Select gene",choices = row.names(Maindata$rawlogdata),multiple = T)
+      output$Difftestheatmapui <- renderUI({
+            tagList({
+                  helpText("All differentially expressed genes:")
+                  plotOutput("Difftestheatmap")                  
+            })
+            
       })
       
-      output$Changepointviewmethodui <- renderUI({
-            if (!is.null(input$ChangepointViewgeneselect) && length(input$ChangepointViewgeneselect) > 1) {
-                  checkboxInput("Changepointviewmethod","Display heatmap",value = F)
+      output$Difftestheatmap <- renderPlot({
+            heatmap.2(Maindata$Difftestdata,trace="none")
+      })
+      
+      output$Difftestsaveplot <- downloadHandler(
+            filename = function() { paste0('Gene_expression.',input$Orderingsaveplottype) },
+            content = function(file) {
+                  if (input$Difftestplottype == 'pdf') {
+                        pdf(file,width=as.numeric(input$Difftestfilewidth),height=as.numeric(input$Difftestfileheight))
+                  } else if (input$Difftestplottype == 'ps') {
+                        postscript(file,width=as.numeric(input$Difftestfilewidth),height=as.numeric(input$Difftestfileheight),paper="special")
+                  }                  
+                  heatmap.2(Maindata$Difftestdata,trace="none")
+                  dev.off()
+            }
+      )
+      
+      ### Visualization ###
+      
+      output$Visualizationpdataselectui <- renderUI({
+            if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata)) {
+                  radioButtons("Visualizationpdataselect","Select the cell ordering you want to use",choices = list("Uploaded pseudotime"="Uploaded","SCA generated pseudotime"="SCA"))     
+            }            
+      })
+      
+      observe({
+            if (input$MainMenu=="Visualization") {
+                  if (!is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata) && !is.null(input$Visualizationpdataselect)) {
+                        if (input$Visualizationpdataselect == 'Uploaded') {
+                              Maindata$finalpdata <- Maindata$uploadpdata
+                        } else {
+                              Maindata$finalpdata <- Maindata$scapdata
+                        }
+                  } else if (!is.null(Maindata$uploadpdata) && is.null(Maindata$scapdata)) {
+                        Maindata$finalpdata <- Maindata$uploadpdata
+                  } else if (is.null(Maindata$uploadpdata) && !is.null(Maindata$scapdata)) {
+                        Maindata$finalpdata <- Maindata$scapdata
+                  }            
             }
       })
       
-      Changepointviewplotfunc <- function() {
-            tmpdata <- Maindata$rawlogdata[input$ChangepointViewgeneselect,Maindata$finalpdata[,1]]
+      output$Visualizationmainui <- renderUI({
+            plotOutput("Visualizationshowplot",width = "100%",height=ifelse(length(input$Visualizationgeneselect)==1,800,ifelse(!is.null(input$Visualizationmethod) && input$Visualizationmethod, 400,800*length(input$Visualizationgeneselect))))            
+      })
+      
+      
+      output$Visualizationgeneselectui <- renderUI({            
+            selectInput("Visualizationgeneselect","Select gene",choices = row.names(Maindata$rawlogdata),multiple = T)
+      })
+      
+      output$Visualizationmethodui <- renderUI({
+            if (!is.null(input$Visualizationgeneselect) && length(input$Visualizationgeneselect) > 1) {
+                  checkboxInput("Visualizationmethod","Display heatmap",value = F)
+            }
+      })
+      
+      Visualizationplotfunc <- function() {
+            tmpdata <- Maindata$rawlogdata[input$Visualizationgeneselect,Maindata$finalpdata[,1]]
             if (is.vector(tmpdata)) {
                   ptime <- 1:length(tmpdata)
-                  plot(ptime,tmpdata,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=input$ChangepointViewgeneselect)      
+                  plot(ptime,tmpdata,xlab="Cell ordering index",ylab="Expression value",pch=19,col=Maindata$finalpdata[,2],main=input$Visualizationgeneselect)      
                   model <- mgcv::gam(tmpdata~s(ptime,k=3))
                   lines(ptime,fitted(model))                  
             } else {
-                  if (!is.null(input$Changepointviewmethod) && input$Changepointviewmethod) {
+                  if (!is.null(input$Visualizationmethod) && input$Visualizationmethod) {
                         heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,srtRow=-45,lwid=c(0.2,1))          
                   } else {
                         par(mfrow=c(nrow(tmpdata),1))
@@ -1060,28 +1133,29 @@ shinyServer(function(input, output,session) {
             }
       }
       
-      output$Changepointviewshowplot <- renderPlot({
-            if (!is.null(input$ChangepointViewgeneselect) && input$ChangepointViewgeneselect[1]!="") {
-                  Changepointviewplotfunc()                        
+      output$Visualizationshowplot <- renderPlot({
+            if (!is.null(input$Visualizationgeneselect) && input$Visualizationgeneselect[1]!="") {
+                  Visualizationplotfunc()                        
             }            
       })
       
-      output$Changepointviewfileheightui <- renderUI({
-            textInput("Changepointviewfileheight","Enter plot height (inches)",value = ifelse(length(input$ChangepointViewgeneselect)==1,12,ifelse(!is.null(input$Changepointviewmethod) && input$Changepointviewmethod, 6,12*length(input$ChangepointViewgeneselect))))
+      output$Visualizationfileheightui <- renderUI({
+            textInput("Visualizationfileheight","Enter plot height (inches)",value = ifelse(length(input$Visualizationgeneselect)==1,12,ifelse(!is.null(input$Visualizationmethod) && input$Visualizationmethod, 6,12*length(input$Visualizationgeneselect))))
       })
       
-      output$Changepointviewsaveplot <- downloadHandler(
-            filename = function() { paste0('Gene_expression.',input$Orderingsaveplottype) },
+      output$Visualizationsaveplot <- downloadHandler(
+            filename = function() { paste0('Gene_expression.',input$Visualizationplottype) },
             content = function(file) {
-                  if (input$Changepointviewplottype == 'pdf') {
-                        pdf(file,width=as.numeric(input$Changepointviewfilewidth),height=as.numeric(input$Changepointviewfileheight))
-                  } else if (input$Changepointviewplottype == 'ps') {
-                        postscript(file,width=as.numeric(input$Changepointviewfilewidth),height=as.numeric(input$Changepointviewfileheight),paper="special")
+                  if (input$Visualizationplottype == 'pdf') {
+                        pdf(file,width=as.numeric(input$Visualizationfilewidth),height=as.numeric(input$Visualizationfileheight))
+                  } else if (input$Visualizationplottype == 'ps') {
+                        postscript(file,width=as.numeric(input$Visualizationfilewidth),height=as.numeric(input$Visualizationfileheight),paper="special")
                   }                  
-                  Changepointviewplotfunc() 
+                  Visualizationplotfunc() 
                   dev.off()
             }
       )
+      
       
       ###  Miscellaneous ###
       
@@ -1125,7 +1199,7 @@ shinyServer(function(input, output,session) {
                   tagList(
                         h5("Instructions:"),
                         p("Sub-population information should be prepared in a data.frame. The first column is the cell name and the second column is the subpopulation id."),
-                        p("Sub-population id could only be 0 and 1. 0 stands for subpopulation collected at an early time point and 1 stands for subpopulaiton collected at a latter time point"),
+                        p("Sub-population id should be integers starting from 0. Larger id stands for subpopulation collected at latter time point"),
                         p("Please make sure the data is correctly read in before any further analysis is conducted. Adjust the options on the left to make changes."),
                         h5("A typical example of tab-delimited file format is as follows:"),
                         p("Cell  ID"),
@@ -1161,9 +1235,13 @@ shinyServer(function(input, output,session) {
             names(subinfo) <- Miscdata$sub[,1]
             scorefunc <- function(order) {
                   scoreorder <- subinfo[order]
+                  optscoreorder <- sort(scoreorder)
+                  optscore <- sum(sapply(1:(length(optscoreorder)-1),function(x) {
+                        sum(optscoreorder[(x+1):length(optscoreorder)] - optscoreorder[x])
+                  })) 
                   sum(sapply(1:(length(scoreorder)-1),function(x) {
                         sum(scoreorder[(x+1):length(scoreorder)] - scoreorder[x])
-                  })) / (sum(scoreorder==1)*sum(scoreorder==0))
+                  })) / optscore
             }      
             data.frame(order = Miscdata$allordername, score = sapply(Miscdata$allorder,scorefunc))
             
