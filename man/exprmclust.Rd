@@ -3,12 +3,12 @@
 \alias{exprmclust}
 \title{exprmclust}
 \usage{
-exprmclust(data, clusternum = 1:9, modelNames = "VVV", reduce = T)
+exprmclust(data, clusternum = 2:9, modelNames = "VVV", reduce = T)
 }
 \arguments{
 \item{data}{The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.}
 
-\item{clusternum}{A numeric vector specifying all possible cluster numbers. The best cluster number will be picked using BIC.}
+\item{clusternum}{An integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two other}
 
 \item{modelNames}{model to be used in model-based clustering. By default "ellipsoidal, varying volume, shape, and orientation" is used.}
 

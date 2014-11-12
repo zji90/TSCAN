@@ -133,7 +133,7 @@ shinyServer(function(input, output,session) {
       
       observe({
             if (input$MainMenu != "Ordering")
-                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Save results (optional)"="save"),selected = "reduction")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Pseudo time reconstruction"="ptime","Save results (optional)"="save"),selected = "reduction")
       })
       
       #upload own cell ordering
@@ -236,7 +236,7 @@ shinyServer(function(input, output,session) {
                                          selectInput("Orderingptimetrimcellselect","Select cell name",choices = colnames(Maindata$procdata),multiple = T)
                         ),
                         conditionalPanel(condition="input.Orderingptimetrimmethod=='expression'",
-                                         helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'trim expression' tab on the main panel."),
+                                         helpText("Cells meeting following criterion simultaneously will be trimmed. Refer to 'Trim expression' tab on the main panel."),
                                          selectInput("Orderingexpressiontrimgene","Gene",choices=row.names(Maindata$rawlogdata)),
                                          radioButtons("Orderingexpressiontrimgtlt","",choices=list("greater than"="greater","smaller than"="smaller")),
                                          textInput("Orderingexpressiontrimvalue","Value",value=0),
@@ -1161,7 +1161,7 @@ shinyServer(function(input, output,session) {
       
       observe({
             if (input$MainMenu != "Ordering")
-                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Calculate pseudotime"="ptime","Save results (optional)"="save"),selected = "reduction")
+                  updateRadioButtons(session,"Orderingchoosestep","",list("Step 1: Reduce dimension"="reduction","Step 2: Pseudo time reconstruction"="ptime","Save results (optional)"="save"),selected = "reduction")
       })
       
       Miscdata <- reactiveValues()

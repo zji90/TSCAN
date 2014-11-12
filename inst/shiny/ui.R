@@ -246,7 +246,7 @@ shinyUI(
                                                                      tabsetPanel(
                                                                            tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px")),
                                                                            tabPanel("Pseudo time",dataTableOutput("Orderingptimeshowptime")),
-                                                                           tabPanel("trim expression",
+                                                                           tabPanel("Trim expression",
                                                                                     h5("This tabset shows the details of trimming cells according to expression values"),
                                                                                     h5("List of criterion:"),
                                                                                     tableOutput("trimexprlistshowtable"),

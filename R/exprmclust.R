@@ -8,7 +8,7 @@
 #' The clustering results will be used for TSCAN ordering.
 #'
 #' @param data The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.
-#' @param clusternum A numeric vector specifying all possible cluster numbers. The best cluster number will be picked using BIC.
+#' @param clusternum An integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two other 
 #' @param modelNames model to be used in model-based clustering. By default "ellipsoidal, varying volume, shape, and orientation" is used.
 #' @param reduce Whether to perform the PCA on the expression data.
 #' @return if more than one cluster detected, a list containing
@@ -31,7 +31,7 @@
 #' procdata <- preprocess(lpsdata)
 #' exprmclust(procdata)
 
-exprmclust <- function(data, clusternum = 1:9, modelNames="VVV", reduce = T) { 
+exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T) { 
       set.seed(12345)
       if (reduce) {
             sdev <- prcomp(t(data),scale=T)$sdev[1:20]
@@ -50,21 +50,18 @@ exprmclust <- function(data, clusternum = 1:9, modelNames="VVV", reduce = T) {
             pcareduceres <- t(data)
       }
       
+      clusternum <- clusternum[clusternum > 1]
+      
       res <- suppressWarnings(Mclust(pcareduceres,G=clusternum,modelNames="VVV"))
-      if (res$G != 1) {
-            clusterid <- apply(res$z,1,which.max)
-            clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=res$G)
-            for (cid in 1:res$G) {
-                  clucenter[cid,] <- colMeans(pcareduceres[names(clusterid[clusterid==cid]),,drop=F])
-            }
-            
-            dp <- as.matrix(dist(clucenter))                                            
-            gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-            dp_mst <- minimum.spanning.tree(gp)
-            list(pcareduceres=pcareduceres,MSTtree=dp_mst,clusterid=clusterid,clucenter=clucenter)      
-      } else {
-            warning("Only one cluster detected!")
-            list(pcareduceres=pcareduceres)
+      clusterid <- apply(res$z,1,which.max)
+      clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=res$G)
+      for (cid in 1:res$G) {
+            clucenter[cid,] <- colMeans(pcareduceres[names(clusterid[clusterid==cid]),,drop=F])
       }
+      
+      dp <- as.matrix(dist(clucenter))                                            
+      gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
+      dp_mst <- minimum.spanning.tree(gp)
+      list(pcareduceres=pcareduceres,MSTtree=dp_mst,clusterid=clusterid,clucenter=clucenter)      
       
 }

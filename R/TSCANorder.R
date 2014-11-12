@@ -9,6 +9,7 @@
 #' @param MSTorder A numeric vector specifying the order of clusters.
 #' @param orderonly Only return the ordering. State or pseudotime information will not be returned
 #' @param flip whether to flip the ordering
+#' @param listbranch whether to list the ordering results of all possible branches
 #' @return if orderonly = F, a vector of ordered cell names. if orderonly = T, a data frame of ordered cell names, cell states and pseudotime. 
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
@@ -18,30 +19,31 @@
 #' lpsmclust <- exprmclust(procdata)
 #' TSCANorder(lpsmclust)
 
-TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F) {
+TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F) {
       set.seed(12345)
-      if (length(names(mclustobj)) == 1) {
-            TSCANorder <- names(sort(mclustobj$pcareduceres[,1]))
-      } else {
-            if (is.null(MSTorder)) {
-                  allsp <- shortest.paths(mclustobj$MSTtree)
-                  longestsp <- which(allsp == max(allsp), arr.ind = T)
-                  MSTorder <- get.shortest.paths(mclustobj$MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]        
-            }      
-            trimclu <- setdiff(as.vector(V(mclustobj$MSTtree)),MSTorder)
+      if (is.null(MSTorder)) {
+            allsp <- shortest.paths(mclustobj$MSTtree)
+            longestsp <- which(allsp == max(allsp), arr.ind = T)
+            MSTorder <- get.shortest.paths(mclustobj$MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]        
+            if (flip) {
+                  MSTorder <- rev(MSTorder)
+            }
+      }      
+      internalorderfunc <- function(internalorder) {
+            trimclu <- setdiff(as.vector(V(mclustobj$MSTtree)),internalorder)
             clucenter <- mclustobj$clucenter
             row.names(clucenter) <- paste0("clu",1:nrow(clucenter))
             clusterid <- mclustobj$clusterid 
-            trimcell <- names(clusterid[clusterid==trimclu])
+            trimcell <- names(clusterid[clusterid %in% trimclu])
             pcareduceres <- mclustobj$pcareduceres
             pcareduceres <- pcareduceres[setdiff(row.names(pcareduceres),trimcell),]
             
             TSCANorder <- NULL
             
-            for (i in 1:length(MSTorder)) {
+            for (i in 1:length(internalorder)) {
                   if (i == 1) {
-                        currentcluid <- MSTorder[i]
-                        nextcluid <- MSTorder[i + 1]
+                        currentcluid <- internalorder[i]
+                        nextcluid <- internalorder[i + 1]
                         currentclucenter <- clucenter[currentcluid,]
                         nextclucenter <- clucenter[nextcluid,]
                         difvec <- nextclucenter - currentclucenter
@@ -49,9 +51,9 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F) {
                         pos <- as.vector(tmppos)
                         names(pos) <- row.names(tmppos)
                         TSCANorder <- c(TSCANorder,names(sort(pos)))                  
-                  } else if (i == length(MSTorder)) {
-                        currentcluid <- MSTorder[i]
-                        lastcluid <- MSTorder[i - 1]
+                  } else if (i == length(internalorder)) {
+                        currentcluid <- internalorder[i]
+                        lastcluid <- internalorder[i - 1]
                         currentclucenter <- clucenter[currentcluid,]
                         lastclucenter <- clucenter[lastcluid,]
                         difvec <- currentclucenter - lastclucenter
@@ -60,9 +62,9 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F) {
                         names(pos) <- row.names(tmppos)
                         TSCANorder <- c(TSCANorder,names(sort(pos)))   
                   } else {
-                        currentcluid <- MSTorder[i]
-                        nextcluid <- MSTorder[i + 1]
-                        lastcluid <- MSTorder[i - 1]
+                        currentcluid <- internalorder[i]
+                        nextcluid <- internalorder[i + 1]
+                        lastcluid <- internalorder[i - 1]
                         currentclucenter <- clucenter[currentcluid,]
                         nextclucenter <- clucenter[nextcluid,]
                         lastclucenter <- clucenter[lastcluid,]
@@ -85,21 +87,32 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F) {
                         TSCANorder <- c(TSCANorder,names(sort(pos)))  
                   }
             }            
+            if (orderonly) {
+                  TSCANorder      
+            } else {
+                  datadist <- dist(mclustobj$pcareduceres)
+                  distmat <- as.matrix(datadist)
+                  alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
+                        distmat[TSCANorder[x],TSCANorder[x+1]]
+                  })
+                  ptime <- c(0,cumsum(alldist))
+                  ptime <- ptime/max(ptime) * 100
+                  data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)            
+            }
       }
-      if (flip) {
-            TSCANorder <- rev(TSCANorder)
-      }
-      if (orderonly) {
-            TSCANorder      
+      
+      if (listbranch) {
+            branchnode <- setdiff(as.vector(V(mclustobj$MSTtree)),MSTorder)
+            allres <- list()
+            allres[["backbone"]] <- internalorderfunc(MSTorder)  
+            for (tmpnode in branchnode) {
+                  tmporder <- get.shortest.paths(mclustobj$MSTtree,MSTorder[1],tmpnode)$vpath[[1]] 
+                  allres[[paste("branch:",paste(tmporder,collapse = ','))]] <- internalorderfunc(tmporder)
+            }
+            allres
       } else {
-            datadist <- dist(mclustobj$pcareduceres)
-            distmat <- as.matrix(datadist)
-            alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
-                  distmat[TSCANorder[x],TSCANorder[x+1]]
-            })
-            ptime <- c(0,cumsum(alldist))
-            ptime <- ptime/max(ptime) * 100
-            data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)            
+            internalorderfunc(MSTorder)            
       }
+      
 }
 

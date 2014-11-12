@@ -3,7 +3,8 @@
 \alias{TSCANorder}
 \title{TSCANorder}
 \usage{
-TSCANorder(mclustobj, MSTorder = NULL, orderonly = T, flip = F)
+TSCANorder(mclustobj, MSTorder = NULL, orderonly = T, flip = F,
+  listbranch = F)
 }
 \arguments{
 \item{mclustobj}{The exact output of the \code{\link{exprmclust}} function.}
@@ -13,6 +14,8 @@ TSCANorder(mclustobj, MSTorder = NULL, orderonly = T, flip = F)
 \item{orderonly}{Only return the ordering. State or pseudotime information will not be returned}
 
 \item{flip}{whether to flip the ordering}
+
+\item{listbranch}{whether to list the ordering results of all possible branches}
 }
 \value{
 if orderonly = F, a vector of ordered cell names. if orderonly = T, a data frame of ordered cell names, cell states and pseudotime.
