@@ -46,22 +46,35 @@ shinyUI(
                                    )                                   
                   ),
                   
-                  conditionalPanel(condition="input.MainMenu=='Preprocess'",
-                                   wellPanel(                                         
-                                         wellPanel(
-                                               h5("Select genes"),
-                                               helpText("These genes will be used for constructing pseudo time cell ordering:"),
-                                               textInput("Preprocessexpvalcutoff","Expression value larger than",1),
-                                               sliderInput("Preprocessexppercent","In at least",min=0,max=1,value=0.3,step=0.01,format="##%"),
-                                               helpText("percentage of all cells"),
-                                               textInput("Preprocesscvcutoff","And coefficient of variance larger than",1)),
-                                         checkboxInput("Preprocesslogtf","Take log of current data",value = T),
-                                         conditionalPanel(condition="input.Preprocesslogtf==1",
-                                                          wellPanel(radioButtons("Preprocesslogbase","Choose log base",choices = c("2","10","e")),
-                                                                    textInput("Preprocesslogpseudocount","Enter pseudo count added when taking log",value = 1)
-                                                          )                                                          
-                                         )
-                                   )
+                  #                   conditionalPanel(condition="input.MainMenu=='Preprocess'",
+                  #                                    wellPanel(                                         
+                  #                                          wellPanel(
+                  #                                                h5("Select genes"),
+                  #                                                helpText("These genes will be used for constructing pseudo time cell ordering:"),
+                  #                                                textInput("Preprocessexpvalcutoff","Expression value larger than",1),
+                  #                                                sliderInput("Preprocessexppercent","In at least",min=0,max=1,value=0.3,step=0.01,format="##%"),
+                  #                                                helpText("percentage of all cells"),
+                  #                                                textInput("Preprocesscvcutoff","And coefficient of variance larger than",1)),
+                  #                                          checkboxInput("Preprocesslogtf","Take log of current data",value = T),
+                  #                                          conditionalPanel(condition="input.Preprocesslogtf==1",
+                  #                                                           wellPanel(radioButtons("Preprocesslogbase","Choose log base",choices = c("2","10","e")),
+                  #                                                                     textInput("Preprocesslogpseudocount","Enter pseudo count added when taking log",value = 1)
+                  #                                                           )                                                          
+                  #                                          )
+                  #                                    )
+                  #                   ),
+                  
+                  conditionalPanel(condition="input.MainMenu=='Preprocess'",                                   
+                                   h5("Hierarchical clustering"),
+                                   helpText("Perform hierarchical clustering to deal with potential drop out events in single-cell RNA-seq data. Genes with zero expression in all cells are excluded."),
+                                   helpText("Choose number of clusters:"),
+                                   textInput("Preprocessrownum","",5), helpText("percent of all genes in the dataset"),
+                                   checkboxInput("Preprocesslogtf","Take log of current data",value = T),
+                                   conditionalPanel(condition="input.Preprocesslogtf==1",
+                                                    wellPanel(radioButtons("Preprocesslogbase","Choose log base",choices = c("2","10","e")),
+                                                              textInput("Preprocesslogpseudocount","Enter pseudo count added when taking log",value = 1)
+                                                    )                                                          
+                                   )                                   
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Ordering'",
@@ -99,7 +112,7 @@ shinyUI(
                                                                            conditionalPanel(condition="input.Orderingdimredmet=='PCA'",
                                                                                             p("Automatically select optimal dimension for PCA"),
                                                                                             p(actionButton("Orderingdimredoptbut","Select")),
-                                                                                            checkboxInput("Orderingshowvarianceplottf","Show variance proportion plot for PCA",value=F)
+                                                                                            checkboxInput("Orderingshowvarianceplottf","Show explained standard deviation plot for PCA",value=F)
                                                                            )
                                                           ),
                                                           conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
@@ -228,7 +241,10 @@ shinyUI(
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Preprocess'",
-                                   uiOutput("Preprocessstatusui")
+                                   #                                   uiOutput("Preprocessstatusui")
+                                   h5("Clustering results:"),
+                                   helpText("The averaged gene expressions within each cluster are used in constructing pseudo-time cell ordering."),
+                                   dataTableOutput("preprocessshowdata")
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Ordering'",

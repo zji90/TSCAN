@@ -90,44 +90,70 @@ shinyServer(function(input, output,session) {
                               tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
                         }
                   }
+                  tmpdata <- tmpdata[rowSums(tmpdata) > 0,]
                   Maindata$fullrawlogdata <- tmpdata
-                  tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),]
-                  tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
-                  Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
+                  clures <- hclust(dist(tmpdata))
+                  cluster <- cutree(clures,0.05*nrow(tmpdata))                  
+                  aggdata <- aggregate(tmpdata,list(cluster),mean)   
+                  aggdata <- aggdata[,-1]
+                  tmpdata <- t(apply(aggdata,1,scale))
+                  colnames(tmpdata) <- colnames(aggdata)
+                  Maindata$fullprocdata <- as.matrix(tmpdata)                  
             }
       })
       
-      output$Preprocesshowproctable <- renderDataTable({
-            if (!is.null(Maindata$fullprocdata)) {
-                  tmpdata <- Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F]
-                  tmpdata <- cbind(row.names(tmpdata),tmpdata)
-                  colnames(tmpdata)[1] <- "GENE"
-                  tmpdata
-            }
-      })
+      output$preprocessshowdata <- renderDataTable(head(Maindata$fullprocdata))
       
-      output$Preprocesshowgenesummary <- renderPrint(summary(t(Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F])))
+#       observe({
+#             if (input$MainMenu == "Preprocess" && !is.null(Maindata$rawdata)) {
+#                   tmpdata <- Maindata$rawdata
+#                   if (input$Preprocesslogtf) {
+#                         if (input$Preprocesslogbase == "2") {
+#                               tmpdata <- log2(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+#                         } else if (input$Preprocesslogbase == "10") {
+#                               tmpdata <- log10(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+#                         } else if (input$Preprocesslogbase == "e") {
+#                               tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+#                         }
+#                   }
+#                   Maindata$fullrawlogdata <- tmpdata
+#                   tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),]
+#                   tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
+#                   Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
+#             }
+#       })
       
-      output$Preprocesshowcellsummary <- renderPrint(summary(Maindata$fullprocdata))
+#       output$Preprocesshowproctable <- renderDataTable({
+#             if (!is.null(Maindata$fullprocdata)) {
+#                   tmpdata <- Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F]
+#                   tmpdata <- cbind(row.names(tmpdata),tmpdata)
+#                   colnames(tmpdata)[1] <- "GENE"
+#                   tmpdata
+#             }
+#       })
+#       
+#       output$Preprocesshowgenesummary <- renderPrint(summary(t(Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F])))
+#       
+#       output$Preprocesshowcellsummary <- renderPrint(summary(Maindata$fullprocdata))
       
-      output$Preprocessstatusui <- renderUI({
-            if (!is.null(Maindata$procdata)) {
-                  tagList(
-                        p(h5("Filter summary")),
-                        p(paste(nrow(Maindata$fullprocdata),"genes out of",nrow(Maindata$rawdata),"genes are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
-                        hr(),
-                        p(h5("Choose genes to display:")),
-                        selectInput("Preprocesschoosegene","",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),                        
-                        p(h5("Expression of selected genes:")),
-                        dataTableOutput("Preprocesshowproctable"),
-                        hr(),
-                        p(h5("Gene level summary table:")),
-                        verbatimTextOutput("Preprocesshowgenesummary"),
-                        p(h5("Cell level summary table (for all retained genes after filtering):")),
-                        verbatimTextOutput("Preprocesshowcellsummary")                        
-                  )
-            }
-      })
+#       output$Preprocessstatusui <- renderUI({
+#             if (!is.null(Maindata$procdata)) {
+#                   tagList(
+#                         p(h5("Filter summary")),
+#                         p(paste(nrow(Maindata$fullprocdata),"genes out of",nrow(Maindata$rawdata),"genes are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
+#                         hr(),
+#                         p(h5("Choose genes to display:")),
+#                         selectInput("Preprocesschoosegene","",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),                        
+#                         p(h5("Expression of selected genes:")),
+#                         dataTableOutput("Preprocesshowproctable"),
+#                         hr(),
+#                         p(h5("Gene level summary table:")),
+#                         verbatimTextOutput("Preprocesshowgenesummary"),
+#                         p(h5("Cell level summary table (for all retained genes after filtering):")),
+#                         verbatimTextOutput("Preprocesshowcellsummary")                        
+#                   )
+#             }
+#       })
       
       ### Cell Ordering ###
       
@@ -217,7 +243,7 @@ shinyServer(function(input, output,session) {
       
       output$Orderingreductionshowvariance <- renderPlot({
             if (input$Orderingdimredmet == "PCA" && !is.null(Maindata$fullreducepc) && input$Orderingshowvarianceplottf) {
-                  plot(Maindata$fullreducepc$sdev[1:20]/sum(Maindata$fullreducepc$sdev),xlab="PC",ylab="Variance proportion",main="PC variance proportion")
+                  plot(Maindata$fullreducepc$sdev[1:20],xlab="number of PC",ylab="Standard deviation proportion explained")
                   abline(v=as.numeric(input$Orderingdimredncomp),col="red")
             }
       })
@@ -253,9 +279,9 @@ shinyServer(function(input, output,session) {
                   Maindata$procdata <- Maindata$fullprocdata
                   Maindata$rawlogdata <- Maindata$fullrawlogdata
             } else {
-                  Maindata$reduceres <- Maindata$fullreduceres[,!colnames(Maindata$fullreduceres) %in% Maindata$trimlist]
-                  Maindata$procdata <- Maindata$fullprocdata[!row.names(Maindata$fullprocdata) %in% Maindata$trimlist,] 
-                  Maindata$rawlogdata <- Maindata$fullrawlogdata[!colnames(Maindata$fullrawlogdata) %in% Maindata$trimlist,] 
+                  Maindata$reduceres <- Maindata$reduceres[,!colnames(Maindata$reduceres) %in% Maindata$trimlist]
+                  Maindata$procdata <- Maindata$procdata[,!colnames(Maindata$procdata) %in% Maindata$trimlist] 
+                  Maindata$rawlogdata <- Maindata$rawlogdata[,!colnames(Maindata$rawlogdata) %in% Maindata$trimlist] 
             }
       })
       
@@ -277,8 +303,9 @@ shinyServer(function(input, output,session) {
                               } else {
                                     celllist <- intersect(celllist,which(Maindata$rawlogdata[tmpgene,] < tmpvalue))
                               }                              
-                        }                        
+                        }
                         Maindata$trimexprcelllist <- celllist
+                        
                   })                       
             }            
       })
@@ -430,7 +457,7 @@ shinyServer(function(input, output,session) {
                         Maindata$scapdata <- cc_ordering
                   } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANclunum)) {
                         set.seed(12345)
-                        res <- suppressWarnings(Mclust(t(Maindata$reduceres),G=input$OrderingTSCANclunum,modelNames="VVV"))
+                        res <- suppressWarnings(Mclust(t(Maindata$reduceres),G=as.numeric(input$OrderingTSCANclunum),modelNames="VVV"))
                         clusterid <- apply(res$z,1,which.max)
                         clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
                         for (cid in 1:res$G) {
@@ -565,7 +592,7 @@ shinyServer(function(input, output,session) {
             selectInput("OrderingMonoclerootcell","select root cell",choices = colnames(Maindata$procdata))
       })
       
-      Monocledrawplot <- function(xlabtext="X",ylabtext="Y",titletext="Pseudotime ordering plot") {
+      Monocledrawplot <- function(xlabtext="X",ylabtext="Y",titletext="") {
             x = as.numeric(input$OrderingMonoclexcomp)
             y = as.numeric(input$OrderingMonocleycomp)
             color_by = "State"
@@ -618,12 +645,18 @@ shinyServer(function(input, output,session) {
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
             }
-            g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize)) + theme(panel.border = element_blank(), axis.line = element_line()) + 
+            g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
+                  theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize)) + theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
                   labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
                                                                                   legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
-                  theme(panel.background = element_rect(fill = "white"))
+                  theme(panel.background = element_rect(fill = "white")) +
+                  theme(axis.text.x = element_text(size=17,color="darkred"),
+                        axis.text.y = element_text(size=17,color='black'),
+                        axis.title.x = element_text(size=20,vjust=-1),
+                        axis.title.y = element_text(size=20,vjust=1),
+                        plot.margin=unit(c(1,1,1,1),"cm"))
             
             if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
@@ -635,7 +668,7 @@ shinyServer(function(input, output,session) {
             g 
       }
       
-      TSCANdrawplot <- function(xlabtext="X",ylabtext="Y",titletext="Pseudotime ordering plot") {
+      TSCANdrawplot <- function(xlabtext="X",ylabtext="Y",titletext="") {
             x = as.numeric(input$OrderingTSCANxcomp)
             y = as.numeric(input$OrderingTSCANycomp)
             color_by = "State"
@@ -658,33 +691,41 @@ shinyServer(function(input, output,session) {
             edge_df <- merge(ica_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")
             
             if (!is.null(markers)) {
-                  markers_exprs <- data.frame(value=Maindata$rawlogdata[markers, ])
+                  markers_exprs <- data.frame(markerexpr=Maindata$rawlogdata[markers, ])
                   edge_df <- merge(edge_df, markers_exprs, by.x = "sample_name", by.y = "row.names")
-                  g <- ggplot(data = edge_df, aes(x = ICA_dim_1, y = ICA_dim_2, size = log10(value + 0.1)))
+                  g <- ggplot(data = edge_df, aes(x = ICA_dim_1, y = ICA_dim_2,size=markerexpr))
+                  g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)
             } else {
                   g <- ggplot(data = edge_df, aes(x = ICA_dim_1, y = ICA_dim_2))
+                  g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE,size=3)
             }
-            g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)
+            
             if (show_cell_names) {
                   g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
             }            
             if (show_tree && max(Maindata$scapdata$State) > 1) {
+                  clucenter <- Maindata$clucenter_TSCAN[,c(x,y)]
                   clulines <- NULL
                   for (i in 1:(length(Maindata$MSTorder_TSCAN)-1)) {
-                        clulines <- rbind(clulines, c(Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i],],Maindata$clucenter_TSCAN[Maindata$MSTorder_TSCAN[i+1],]))
+                        clulines <- rbind(clulines, c(clucenter[Maindata$MSTorder_TSCAN[i],],clucenter[Maindata$MSTorder_TSCAN[i+1],]))
                   }
                   clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
                   g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
-                  clucenter <- Maindata$clucenter_TSCAN
                   clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
                   g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)                  
             }            
-            g <- g + theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
+            g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
+                  theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
-                  labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
-                                                                                  legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
-                  theme(panel.background = element_rect(fill = "white"))
+            labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
+                                                                            legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
+                  theme(panel.background = element_rect(fill = "white")) +
+                  theme(axis.text.x = element_text(size=17,color="darkred"),
+                        axis.text.y = element_text(size=17,color='black'),
+                        axis.title.x = element_text(size=20,vjust=-1),
+                        axis.title.y = element_text(size=20,vjust=1),
+                        plot.margin=unit(c(1,1,1,1),"cm"))
             
             if (input$Orderingptimezoomintf) {
                   g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
@@ -698,10 +739,17 @@ shinyServer(function(input, output,session) {
       
       output$Orderingptimeshowplot <- renderPlot({
             if (!is.null(Maindata$reduceres)) {
+                  if (input$Orderingdimredmet == "ICA") {                        
+                        tmpxlabtext <- paste0("ICA_dimension_",as.numeric(input$OrderingTSCANxcomp))
+                        tmpylabtext <- paste0("ICA_dimension_",as.numeric(input$OrderingTSCANycomp))
+                  } else {
+                        tmpxlabtext <- paste0("PCA_dimension_",as.numeric(input$OrderingTSCANxcomp))
+                        tmpylabtext <- paste0("PCA_dimension_",as.numeric(input$OrderingTSCANycomp))
+                  }                  
                   if (input$Orderingptimechoosemethod=="Monocle" && !is.null(Maindata$dp_Monocle)) {
-                        Monocledrawplot()
+                        Monocledrawplot(xlabtext=tmpxlabtext,ylabtext=tmpylabtext)
                   } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANshow_cell_names)) {
-                        TSCANdrawplot()
+                        TSCANdrawplot(xlabtext=tmpxlabtext,ylabtext=tmpylabtext)
                   } else if (input$Orderingptimechoosemethod=="PC") {
                         coord <- t(Maindata$reduceres)
                         if (input$Orderingptimezoomintf) {
