@@ -14,6 +14,7 @@ shinyUI(
             sidebarPanel(
                   
                   wellPanel(
+                        helpText(a("Youtube short video demo",href="https://www.youtube.com/watch?v=zdcBAVe1GBE",target="_blank")),
                         radioButtons("MainMenu","Main Menu",
                                      list("Reading in dataset"="Input",
                                           "Preprocessing"="Preprocess",
@@ -254,13 +255,13 @@ shinyUI(
                                                     uiOutput("Orderinguploadshowpdataui")
                                    ),
                                    conditionalPanel(condition="input.Orderinguploadordering=='0'",
-                                                    conditionalPanel(condition="input.Orderingchoosestep=='reduction'",
+                                                    conditionalPanel(condition="input.Orderingchoosestep=='reduction'",                                                                     
                                                                      plotOutput("Orderingreductionshowplot",width = "800px",height = "800px"),
                                                                      plotOutput("Orderingreductionshowvariance",width = "800px",height = "800px")
                                                     ),
                                                     conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
                                                                      tabsetPanel(
-                                                                           tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px")),
+                                                                           tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px"),plotOutput("Orderingptimeclustershowplot",width = "400px",height = "400px")),
                                                                            tabPanel("Pseudo time",dataTableOutput("Orderingptimeshowptime")),
                                                                            tabPanel("Trim expression",
                                                                                     h5("This tabset shows the details of trimming cells according to expression values"),

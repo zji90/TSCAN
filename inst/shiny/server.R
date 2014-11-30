@@ -763,6 +763,62 @@ shinyServer(function(input, output,session) {
             }
       })
       
+      output$Orderingptimeclustershowplot <- renderPlot({
+            if (!is.null(input$OrderingTSCANmarkertf) && input$OrderingTSCANmarkertf) {
+            x = as.numeric(input$OrderingTSCANxcomp)
+            y = as.numeric(input$OrderingTSCANycomp)
+            color_by = "State"
+            
+            lib_info_with_pseudo <- Maindata$scapdata
+            lib_info_with_pseudo$State <- factor(lib_info_with_pseudo$State)
+            S_matrix <- Maindata$reduceres
+            pca_space_df <- data.frame(t(S_matrix[c(x, y), ]))
+            colnames(pca_space_df) <- c("pca_dim_1","pca_dim_2")            
+            pca_space_df$sample_name <- row.names(pca_space_df)
+            edge_df <- merge(pca_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")    
+            markers_exprs <- Maindata$rawlogdata[input$OrderingTSCANmarker, ]
+            edge_df$markerexpr <- markers_exprs[edge_df$sample_name]
+            data <- data.frame(pca_dim_1=tapply(edge_df$pca_dim_1,edge_df$State,mean),pca_dim_2=tapply(edge_df$pca_dim_2,edge_df$State,mean),expr=scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1],state=1:length(unique(edge_df$State)))
+            data$state <- as.factor(data$state)
+            g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
+            g <- g + geom_point(color = "white", na.rm = TRUE)
+            
+            clucenter <- Maindata$clucenter_TSCAN[,c(x,y)]
+            clulines <- NULL
+            MSTorder <- Maindata$MSTorder_TSCAN
+            for (i in 1:(length(MSTorder)-1)) {
+                  clulines <- rbind(clulines, c(clucenter[MSTorder[i],],clucenter[MSTorder[i+1],]))
+            }
+            clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
+            g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
+            
+            g <- g + geom_point(aes(x=pca_dim_1,y=pca_dim_2,color=expr),data=data,size=10)
+            clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
+            g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
+            g <- g + scale_color_continuous(low="white",high="red")            
+            g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
+                  xlab(paste0("PCA_dimension_",x)) + ylab(paste0("PCA_dimension_",y)) +
+                  theme(panel.border = element_blank(), axis.line = element_line()) + 
+                  theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+                  theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+                  theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20)) + theme(legend.key = element_blank()) + 
+                  theme(panel.background = element_rect(fill = "white")) +
+                  theme(axis.text.x = element_text(size=17,color="darkred"),
+                        axis.text.y = element_text(size=17,color='black'),
+                        axis.title.x = element_text(size=20,vjust=-1),
+                        axis.title.y = element_text(size=20,vjust=1),
+                        plot.margin=unit(c(1,1,1,1),"cm"))
+            if (input$Orderingptimezoomintf) {
+                  g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
+            } else {
+                  sc1 <- 0.05 * (max(Maindata$fullreduceres[x,])-min(Maindata$fullreduceres[x,]))
+                  sc2 <- 0.05 * (max(Maindata$fullreduceres[y,])-min(Maindata$fullreduceres[y,]))
+                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[x,]) - sc1, max(Maindata$fullreduceres[x,])+sc1),ylim=c(min(Maindata$fullreduceres[y,])-sc2, max(Maindata$fullreduceres[y,])+sc2))
+            }  
+            g       
+            }
+      })
+
       output$Orderingptimeshowptime <- renderDataTable(Maindata$scapdata)
       
       #       #Step 3: starting point
