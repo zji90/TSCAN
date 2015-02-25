@@ -373,7 +373,7 @@ shinyServer(function(input, output,session) {
                         sliderInput("OrderingMonocleycomp","Component displayed on y axis",1,as.numeric(input$Orderingdimredncomp),value=2,step=1))                  
             } else if (input$Orderingptimechoosemethod=="TSCAN") {
                   tagList(
-                        sliderInput("OrderingTSCANclunum","Choose number of cell clusters",min=1,max=20,step=1,value=3),
+                        sliderInput("OrderingTSCANclunum","Choose number of cell clusters. (Model-based clustering may not be applicable for large cluster numbers)",min=1,max=20,step=1,value=3),
                         p(actionButton("OrderingTSCANoptclunum","Use optimal cluster number")),
                         checkboxInput("OrderingTSCANreversetf","Reverse the ordering",value=F),
                         checkboxInput("OrderingTSCANtuneordertf","Manually tune ordering"),
@@ -429,7 +429,7 @@ shinyServer(function(input, output,session) {
             if (!is.null(Maindata$reduceres) && input$Orderingptimechoosemethod=="TSCAN") {
                   input$OrderingTSCANoptclunum
                   isolate({
-                        optnum <- suppressWarnings(Mclust(t(Maindata$reduceres),modelNames="VVV"))$G
+                        optnum <- tryCatch(Mclust(t(Maindata$reduceres),modelNames="VVV")$G,warning=function(w) {}, error=function(e) {})
                         updateSliderInput(session,"OrderingTSCANclunum","Choose number of cell clusters",value=as.numeric(optnum))
                   })
             }
@@ -457,7 +457,8 @@ shinyServer(function(input, output,session) {
                         Maindata$scapdata <- cc_ordering
                   } else if (input$Orderingptimechoosemethod=="TSCAN" && !is.null(input$OrderingTSCANclunum)) {
                         set.seed(12345)
-                        res <- suppressWarnings(Mclust(t(Maindata$reduceres),G=as.numeric(input$OrderingTSCANclunum),modelNames="VVV"))
+                        res <- tryCatch(Mclust(t(Maindata$reduceres),G=as.numeric(input$OrderingTSCANclunum),modelNames="VVV"),warning=function(w) {}, error=function(e) {})
+                        if (!is.null(res)) {
                         clusterid <- apply(res$z,1,which.max)
                         clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
                         for (cid in 1:res$G) {
@@ -559,7 +560,8 @@ shinyServer(function(input, output,session) {
                               Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=1,Pseudotime=ptime,stringsAsFactors = F)      
                         } else {
                               Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)      
-                        }                        
+                        }      
+                        }
                   } else if (input$Orderingptimechoosemethod=="PC" && !is.null(input$OrderingPCclunum)) {
                         coord <- t(Maindata$reduceres)
                         w <- rep(1,nrow(coord))

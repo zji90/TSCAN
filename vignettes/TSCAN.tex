@@ -1,0 +1,234 @@
+%\VignetteIndexEntry{TSCAN: Tools for Single-Cell ANalysis} 
+%\VignetteDepends{} 
+% \VignetteEngine{knitr::knitr}
+%\VignettePackage{TSCAN}
+
+\documentclass[10pt,oneside]{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[utf8]{inputenc}
+\setlength\parindent{0pt}
+
+\newcommand{\thetitle}{TSCAN: Tools for Single-Cell ANalysis}
+
+\title{\textsf{\textbf{\thetitle}}}
+\author{Zhicheng Ji\\[1em]Johns Hopkins University,\\ Baltimore, Maryland, USA\\
+\texttt{zji4@jhu.edu} \and
+Hongkai Ji\\[1em]Johns Hopkins University,\\ Baltimore, Maryland, USA\\
+\texttt{hji@jhsph.edu}}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introductions}
+Single-cell high-throughput transcriptomics is a powerful approach to investigate the heterogeneity of gene expression activities on cell level, which is otherwise hard to detect by bulk transcriptomics experiments. Many of the single-cell transcriptomics researches focus on the differentiation of various cell types and hope to find how the expression of genes and key regulatory factors changes over the differentiation process [1,2]. For individual cells during the differentiation process, each cell may experience quite varying schedule of transcriptional changes even though the overall trajectory of changes is highly identical. To depict such variation between individual cells, it is essential to reconstruct the differentiation lineage and order each single cell to the correct cellular states on the lineage.
+
+Several computational methods specifically tailored for single-cell experiments have been proposed to reconstruct the trend of cellular transitions during differentiation. For example, SPADE [3] uses an unsupervised spanning-tree progression approach to organize cells in a hierarchy of related phenotypes when applied to flow cytometry data. Such approach can reveal complex cellular hierarchies of differentiation and rare cell states. Similarly, Monocle [4] also takes advantages of unsupervised minimum spanning tree to order whole-transcriptome profiles of single cells along 'pseudotime', a hypothesized time course which can quantitatively measure the real biological process of differentiation. This pseudotime course is then used to study how gene expressions change over the differentiation process.
+
+If we assume the validity of the pseudotemporal ordering approach, several problems still remain to be solved. First, it is obvious that there could be numerous ways to construct such pseudotime course for a given single-cell transcriptome profile. Thus how to evaluate these pseudotime courses in an unbiased way is a critical issue before any follow-up analysis. Second, a completely unsupervised learning strategy (e.g. without using any prior biological information of certain marker genes) may lead to quite unreliable results. In Monocle’s case, since the MST (minimum spanning tree) algorithm cannot automatically designate a starting or ending point of the tree, it is possible that the MST will falsely switch the starting and ending point of the true biological process and lead to the opposite results. As reliable prior biological information do exist for most biological system in which single-cell experiments are conducted, we hypothesize that these information could be incorporated into constructing the pseudotime course to generate more reliable results.
+
+To address the first problem, we propose pseudotemporal ordering score (POS), a quantitative measure of the reliability of numerous possible pseudotime course. We also propose a new pseudotime course construction method, travelling salesman problem algorithm (TSP), which aims to find a pseudotime course to minimize the total distance of linking the transcriptome profiles of all single cells. Using POS, we argue that TSP is more reliable than the MST algorithm in several testing datasets.
+
+A new software, TSCAN, is proposed to faciliate the consturction of pseudotemporal cell ordering using TSP algorithm on single-cell RNA-seq data. TSCAN first uses principal component analysis to perform dimension reduction on the preprocessed gene expression data. Then the travelling salesman problem (TSP) algorithm is applied to construct a pseudotemporal ordering of cells so that the total distance along the path is nearly the shortest one. To address the problem that TSP does not have a designated starting/ending point, users can provide prior biological information of gene expression to select the optimal starting point of the ordering. After the pseudotemporal ordering and pseudotime are constructed, TSCAN can search for differentially expressed genes.
+
+TSCAN comes with a user-friendly GUI written in shiny which provides powerful and convenient functions to tune pseudotemporal ordering. For example, users can trim unwanted cells or branches after an initial construction of pseudotime ordering. Users can use multiple marker genes to tune the starting point of the TSP path. Users can also easily calculate POS for different cell orderings using TSCAN GUI by uploading cell ordering and sub-population information.
+
+Many new features can be added to TSCAN in the future. Most importantly, TSCAN will be able to analyze single-cell experiments data other than gene expression data and construct pseudotemporal ordering correspondingly. TSCAN will also be able to automatically determine the change points of the differentially expressed genes and order the genes according to these change points. Genes with similar change points and change patterns may provide interesting biological findings about the biological processes in the single-cell experiments.
+
+Now we use the single-cell RNA-seq data for BMDC cells before and after 6h of LPS stimulation [5] to demonstrate how TSCAN can be used to construct pseudotemporal cell ordering using TSP.
+
+\section{Preprocess Gene Expression Profiles}
+
+The function preprocess can be used to filter out genes which are not expressed in most cells or not differentially expressed. 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(TSCAN)}
+\hlkwd{data}\hlstd{(lpsdata)}
+\hlstd{procdata} \hlkwb{<-} \hlkwd{preprocess}\hlstd{(lpsdata)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+By default, preprocess will first take log2 on the original dataset after adding a pseudocount of 1. Then the function will rule out genes which have expression values of less than 1 in at least half of all cells. Genes whose coefficient of covariance of the expression values is less than 1 are also filtered out.
+
+\section{Constructing Pseudotime}
+
+The function exprmclust will perform dimension reduction using principal component analysis and model-based clustering. 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{lpsmclust} \hlkwb{<-} \hlkwd{exprmclust}\hlstd{(procdata)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): could not find function "{}exprmclust"{}}}\end{kframe}
+\end{knitrout}
+
+Use plotmclust function to visualize the clustering based on the data after dimension reduction.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{plotmclust}\hlstd{(lpsmclust)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): could not find function "{}plotmclust"{}}}\end{kframe}
+\end{knitrout}
+
+Use the TSCANorder function to obtain the TSCAN ordering.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{lpsorder} \hlkwb{<-} \hlkwd{TSCANorder}\hlstd{(lpsmclust)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): could not find function "{}TSCANorder"{}}}\begin{alltt}
+\hlstd{lpsorder}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'lpsorder' not found}}\end{kframe}
+\end{knitrout}
+
+\section{Testing Differentially Expressed Genes}
+
+Use difftest function to detect differentially expressed genes given a constructed pseudotemporal ordering. The function will compare fitting a generalized additive model (gam) and fitting a constant. If gam fits significantly better than a constant fit than the gene is supposed to be differentially expressed. Original p-values as well as q-values after adjusting for multiple testing will be the output.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{diffval} \hlkwb{<-} \hlkwd{difftest}\hlstd{(procdata,lpsorder)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in difftest(procdata, lpsorder): object 'lpsorder' not found}}\begin{alltt}
+\hlcom{#Selected differentially expressed genes under qvlue cutoff of 0.05}
+\hlkwd{head}\hlstd{(}\hlkwd{row.names}\hlstd{(diffval)[diffval}\hlopt{$}\hlstd{qval} \hlopt{<} \hlnum{0.05}\hlstd{])}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in row.names(diffval): object 'diffval' not found}}\end{kframe}
+\end{knitrout}
+
+Use singlegeneplot function to plot the expression value of a single gene against a given pseudotime. Notice that here orderonly should be set to FALSE.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{STAT2expr} \hlkwb{<-} \hlkwd{log2}\hlstd{(lpsdata[}\hlstr{"STAT2"}\hlstd{,]}\hlopt{+}\hlnum{1}\hlstd{)}
+\hlkwd{singlegeneplot}\hlstd{(STAT2expr,} \hlkwd{TSCANorder}\hlstd{(lpsmclust,}\hlkwc{flip}\hlstd{=}\hlnum{TRUE}\hlstd{,}\hlkwc{orderonly}\hlstd{=}\hlnum{FALSE}\hlstd{))}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in singlegeneplot(STAT2expr, TSCANorder(lpsmclust, flip = TRUE, : could not find function "{}TSCANorder"{}}}\end{kframe}
+\end{knitrout}
+
+\section{Comparing Different Pseudotemporal Ordering}
+
+Given sub-population information of the single-cell information, function orderscore can calculate the pseudotemporal ordering score (POS) of multiple pseudotemporl ordering.
+
+First prepare the ordering information. We want to compare TSP ordering with or without marker gene information.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{subpopulation} \hlkwb{<-} \hlkwd{data.frame}\hlstd{(}\hlkwc{cell} \hlstd{=} \hlkwd{colnames}\hlstd{(procdata),} \hlkwc{sub} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{grepl}\hlstd{(}\hlstr{"Unstimulated"}\hlstd{,}\hlkwd{colnames}\hlstd{(procdata)),}\hlnum{0}\hlstd{,}\hlnum{1}\hlstd{),} \hlkwc{stringsAsFactors} \hlstd{=} \hlnum{FALSE}\hlstd{)}
+\hlcom{#Comparing ordering with or without marker gene information}
+\hlstd{order1} \hlkwb{<-} \hlkwd{TSCANorder}\hlstd{(lpsmclust)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): could not find function "{}TSCANorder"{}}}\begin{alltt}
+\hlstd{order2} \hlkwb{<-} \hlkwd{TSCANorder}\hlstd{(lpsmclust,} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{2}\hlstd{,}\hlnum{3}\hlstd{))}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): could not find function "{}TSCANorder"{}}}\begin{alltt}
+\hlstd{orders} \hlkwb{<-} \hlkwd{list}\hlstd{(order1,order2)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'order1' not found}}\end{kframe}
+\end{knitrout}
+
+Run orderscore function to get the comparison result:
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{orderscore}\hlstd{(subpopulation, orders)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in lapply(X = X, FUN = FUN, ...): object 'orders' not found}}\end{kframe}
+\end{knitrout}
+
+From the previous example we can see that when prior information of MYOG gene expression is available, POS will dramatically increase compared to the ordering without MYOG gene expression information.
+
+\section{Reference}
+[1] Bendall, S. C., Simonds, E. F., Qiu, P., El-ad, D. A., Krutzik, P. O., Finck, R., ... \& Nolan, G. P. (2011). Single-cell mass cytometry of differential immune and drug responses across a human hematopoietic continuum. Science, 332(6030), 687-696.
+
+[2] Tang, F., Barbacioru, C., Bao, S., Lee, C., Nordman, E., Wang, X., ... \& Surani, M. A. (2010). Tracing the derivation of embryonic stem cells from the inner cell mass by single-cell RNA-Seq analysis. Cell stem cell, 6(5), 468-478.
+
+[3] Qiu, P., Simonds, E. F., Bendall, S. C., Gibbs Jr, K. D., Bruggner, R. V., Linderman, M. D., ... \& Plevritis, S. K. (2011). Extracting a cellular hierarchy from high-dimensional cytometry data with SPADE. Nature biotechnology, 29(10), 886-891.
+
+[4] Trapnell, C., Cacchiarelli, D., Grimsby, J., Pokharel, P., Li, S., Morse, M., ... \& Rinn, J. L. (2014). The dynamics and regulators of cell fate decisions are revealed by pseudotemporal ordering of single cells. Nature biotechnology.
+
+[5] Shalek, A. K., Satija, R., Shuga, J., Trombetta, J. J., Gennert, D., Lu, D., ... \& Regev, A. (2014). Single-cell RNA-seq reveals dynamic paracrine control of cellular variation. Nature.
+
+\end{document}
+
