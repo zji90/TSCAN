@@ -7,6 +7,7 @@
 #' @param mclustobj The exact output of \code{\link{exprmclust}} function.
 #' @param x The column of data after dimension reduction to be plotted on the horizontal axis.
 #' @param y The column of data after dimension reduction to be plotted on the vertical axis.
+#' @param MSTorder The arbitrary order of cluster to be shown on the plot.
 #' @param show_tree Whether to show the links between cells connected in the minimum spanning tree.
 #' @param show_cell_names Whether to draw the name of each cell in the plot.
 #' @param cell_name_size The size of cell name labels if show_cell_names is TRUE.
