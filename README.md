@@ -1,8 +1,8 @@
 TSCAN: Tools for Single-Cell ANalysis
 ====
       
-      ## Overview
-      TSCAN is a novel software tool to facilitate pseudo-time reconstruction in Single-Cell RNA-seq Analysis. TSCAN uses a cluster-based minimum spanning tree (MST) approach to order cells. Cells are first grouped into clusters and an MST is then constructed to connect cluster centers. Pseudo-time is obtained by projecting each cell onto the tree, and the ordered sequence of cells can be used to study dynamic changes of gene expression along the pseudo-time. Clustering cells before MST construction reduces the complexity of the tree space. This often leads to improved pseudo-time reconstruction. It also brings convenience for users to interactively adjust the analysis by incorporating prior knowledge. TSCAN has a graphical user interface (GUI) to support data visualization and user interaction.
+## Overview
+TSCAN is a novel software tool to facilitate pseudo-time reconstruction in Single-Cell RNA-seq Analysis. TSCAN uses a cluster-based minimum spanning tree (MST) approach to order cells. Cells are first grouped into clusters and an MST is then constructed to connect cluster centers. Pseudo-time is obtained by projecting each cell onto the tree, and the ordered sequence of cells can be used to study dynamic changes of gene expression along the pseudo-time. Clustering cells before MST construction reduces the complexity of the tree space. This often leads to improved pseudo-time reconstruction. It also brings convenience for users to interactively adjust the analysis by incorporating prior knowledge. TSCAN has a graphical user interface (GUI) to support data visualization and user interaction.
 
 ## TSCAN Online User Interface
 TSCAN user interface can be directly launched online without installing any software package: https://zhiji.shinyapps.io/TSCAN. PLEASE NOTE: Currently the online version only allows one concurrent user. If the online user interface shows "please wait" for a long time, probably another user is using the online interface and please come back at another time. Users are recommended to install TSCAN on their own computers with following procedures.
