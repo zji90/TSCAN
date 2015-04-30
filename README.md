@@ -14,13 +14,13 @@ Users should have R installed on their computer before installing TSCAN. R can b
 
 ### Install  via Github (Recommended)
 To install the latest version of TSCAN package via Github, run following commands in R:
-      ```{r }
+```{r }
 if (!require("devtools"))
       install.packages("devtools")
 devtools::install_github("TSCAN","zji90")
 ```
 To launch user interface after installation, run following commands in R:
-      ```{r }
+```{r }
 library(TSCAN)
 TSCANui()
 ```
@@ -28,7 +28,7 @@ For users with R programming experience, command line tools are also available i
 
 ### Install TSCAN via Bioconductor
 TSCAN can also be installed via Bioconductor. Note that the TSCAN package may not be most up-to-dated on Bioconductor. To install TSCAN via Bioconductor, run the following commands in R:
-      ```{r }
+```{r }
 source("http://bioconductor.org/biocLite.R")
 biocLite("TSCAN")
 ```
@@ -44,6 +44,6 @@ Author: Zhicheng Ji, Hongkai Ji
 
 Report bugs and provide suggestions by sending email to:
       
-      Maintainer: Zhicheng Ji (zji4@jhu.edu)
+Maintainer: Zhicheng Ji (zji4@jhu.edu)
 
 Or open a new issue in this Github page
