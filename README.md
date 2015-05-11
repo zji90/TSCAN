@@ -46,4 +46,4 @@ Report bugs and provide suggestions by sending email to:
       
 Maintainer: Zhicheng Ji (zji4@jhu.edu)
 
-Or open a new issue in this Github page
+Or open a new issue on this Github page
