@@ -63,7 +63,7 @@ shinyServer(function(input, output,session) {
       
       output$Inputshowinstructionui <- renderUI({
             if (input$Inputshowinstructiontf) {
-                        wellPanel(
+                  wellPanel(
                         h5("Instructions:"),
                         p("Single cell data should be prepared in a matrix-like data format. Each row corresponds to a gene/feature and each column corresponds to a single cell."),
                         p("Notice that each row should have the same number of entries, especially for the header (first row)"),
@@ -72,7 +72,7 @@ shinyServer(function(input, output,session) {
                         p("Gene Cell1  Cell2  Cell3  Cell4"),
                         p("SOX2 0.455  0.543  0.000  2.188"),
                         p("PAT1 0.231  2.792  1.222  0.000")                      
-                        )
+                  )
             }
       })
       
@@ -104,56 +104,56 @@ shinyServer(function(input, output,session) {
       
       output$preprocessshowdata <- renderDataTable(head(Maindata$fullprocdata))
       
-#       observe({
-#             if (input$MainMenu == "Preprocess" && !is.null(Maindata$rawdata)) {
-#                   tmpdata <- Maindata$rawdata
-#                   if (input$Preprocesslogtf) {
-#                         if (input$Preprocesslogbase == "2") {
-#                               tmpdata <- log2(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-#                         } else if (input$Preprocesslogbase == "10") {
-#                               tmpdata <- log10(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-#                         } else if (input$Preprocesslogbase == "e") {
-#                               tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-#                         }
-#                   }
-#                   Maindata$fullrawlogdata <- tmpdata
-#                   tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),]
-#                   tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
-#                   Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
-#             }
-#       })
+      #       observe({
+      #             if (input$MainMenu == "Preprocess" && !is.null(Maindata$rawdata)) {
+      #                   tmpdata <- Maindata$rawdata
+      #                   if (input$Preprocesslogtf) {
+      #                         if (input$Preprocesslogbase == "2") {
+      #                               tmpdata <- log2(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+      #                         } else if (input$Preprocesslogbase == "10") {
+      #                               tmpdata <- log10(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+      #                         } else if (input$Preprocesslogbase == "e") {
+      #                               tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+      #                         }
+      #                   }
+      #                   Maindata$fullrawlogdata <- tmpdata
+      #                   tmpdata <- tmpdata[rowMeans(tmpdata > as.numeric(input$Preprocessexpvalcutoff)) > as.numeric(input$Preprocessexppercent),]
+      #                   tmprowcv <- apply(tmpdata,1,sd)/rowMeans(tmpdata)
+      #                   Maindata$fullprocdata <- tmpdata[tmprowcv > as.numeric(input$Preprocesscvcutoff),]
+      #             }
+      #       })
       
-#       output$Preprocesshowproctable <- renderDataTable({
-#             if (!is.null(Maindata$fullprocdata)) {
-#                   tmpdata <- Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F]
-#                   tmpdata <- cbind(row.names(tmpdata),tmpdata)
-#                   colnames(tmpdata)[1] <- "GENE"
-#                   tmpdata
-#             }
-#       })
-#       
-#       output$Preprocesshowgenesummary <- renderPrint(summary(t(Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F])))
-#       
-#       output$Preprocesshowcellsummary <- renderPrint(summary(Maindata$fullprocdata))
+      #       output$Preprocesshowproctable <- renderDataTable({
+      #             if (!is.null(Maindata$fullprocdata)) {
+      #                   tmpdata <- Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F]
+      #                   tmpdata <- cbind(row.names(tmpdata),tmpdata)
+      #                   colnames(tmpdata)[1] <- "GENE"
+      #                   tmpdata
+      #             }
+      #       })
+      #       
+      #       output$Preprocesshowgenesummary <- renderPrint(summary(t(Maindata$fullprocdata[row.names(Maindata$fullprocdata) %in% input$Preprocesschoosegene,,drop=F])))
+      #       
+      #       output$Preprocesshowcellsummary <- renderPrint(summary(Maindata$fullprocdata))
       
-#       output$Preprocessstatusui <- renderUI({
-#             if (!is.null(Maindata$procdata)) {
-#                   tagList(
-#                         p(h5("Filter summary")),
-#                         p(paste(nrow(Maindata$fullprocdata),"genes out of",nrow(Maindata$rawdata),"genes are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
-#                         hr(),
-#                         p(h5("Choose genes to display:")),
-#                         selectInput("Preprocesschoosegene","",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),                        
-#                         p(h5("Expression of selected genes:")),
-#                         dataTableOutput("Preprocesshowproctable"),
-#                         hr(),
-#                         p(h5("Gene level summary table:")),
-#                         verbatimTextOutput("Preprocesshowgenesummary"),
-#                         p(h5("Cell level summary table (for all retained genes after filtering):")),
-#                         verbatimTextOutput("Preprocesshowcellsummary")                        
-#                   )
-#             }
-#       })
+      #       output$Preprocessstatusui <- renderUI({
+      #             if (!is.null(Maindata$procdata)) {
+      #                   tagList(
+      #                         p(h5("Filter summary")),
+      #                         p(paste(nrow(Maindata$fullprocdata),"genes out of",nrow(Maindata$rawdata),"genes are preserved, which is",round(nrow(Maindata$fullprocdata)/nrow(Maindata$rawdata)*100,3),"percent.")),
+      #                         hr(),
+      #                         p(h5("Choose genes to display:")),
+      #                         selectInput("Preprocesschoosegene","",choices = row.names(Maindata$fullprocdata),selected = head(row.names(Maindata$fullprocdata),n=2),multiple = T),                        
+      #                         p(h5("Expression of selected genes:")),
+      #                         dataTableOutput("Preprocesshowproctable"),
+      #                         hr(),
+      #                         p(h5("Gene level summary table:")),
+      #                         verbatimTextOutput("Preprocesshowgenesummary"),
+      #                         p(h5("Cell level summary table (for all retained genes after filtering):")),
+      #                         verbatimTextOutput("Preprocesshowcellsummary")                        
+      #                   )
+      #             }
+      #       })
       
       ### Cell Ordering ###
       
@@ -381,7 +381,7 @@ shinyServer(function(input, output,session) {
                                          selectInput("OrderingTSCANtuneorderchoose","",choices=list("List cluster order"="order","Use marker gene expression"="gene")),
                                          conditionalPanel("input.OrderingTSCANtuneorderchoose=='order'",textInput("OrderingTSCANtuneorder","Ordering should be seperated by comma (For example: 1,3,2)")),
                                          conditionalPanel("input.OrderingTSCANtuneorderchoose=='gene'",helpText("Clusters will be reordered so the averaged marker gene expression of clusters changes monotonically"),selectInput("OrderingTSCANtunegene","Select marker gene",choices = row.names(Maindata$fullrawlogdata)))
-                                         ),
+                        ),
                         checkboxInput("OrderingTSCANshow_tree","Show MST",value = F),                        
                         checkboxInput("OrderingTSCANshow_cell_names","Show cell name",value=T),
                         conditionalPanel(condition="input.OrderingTSCANshow_cell_names=='1'",textInput("OrderingTSCANcell_name_size","Choose the size of cell name labels",value = 3)),
@@ -459,108 +459,133 @@ shinyServer(function(input, output,session) {
                         set.seed(12345)
                         res <- tryCatch(Mclust(t(Maindata$reduceres),G=as.numeric(input$OrderingTSCANclunum),modelNames="VVV"),warning=function(w) {}, error=function(e) {})
                         if (!is.null(res)) {
-                        clusterid <- apply(res$z,1,which.max)
-                        clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
-                        for (cid in 1:res$G) {
-                              clucenter[cid,] <- colMeans(t(Maindata$reduceres)[names(clusterid[clusterid==cid]),,drop=F])
-                        }
-                        dp <- as.matrix(dist(clucenter))                                            
-                        gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-                        Maindata$dp_TSCAN <- MSTtree <- minimum.spanning.tree(gp)
-                        Maindata$clucenter_TSCAN=clucenter
-                        allsp <- shortest.paths(MSTtree)
-                        longestsp <- which(allsp == max(allsp), arr.ind = T)
-                        if (input$OrderingTSCANtuneordertf) { 
-                              if (input$OrderingTSCANtuneorderchoose=='order') {                                    
-                                    if (input$OrderingTSCANtuneorder=="") {
-                                          Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
-                                    } else {
-                                          tmp <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
-                                          tmp <- tmp[tmp <= nrow(clucenter)]
-                                          Maindata$MSTorder_TSCAN <- MSTorder <- tmp            
-                                    }                                    
-                              } else if (input$OrderingTSCANtuneorderchoose=='gene') {
-                                    if (res$G == 1) {
-                                          Maindata$MSTorder_TSCAN <- MSTorder <- 1
-                                    } else {
-                                          meanval <- sapply(1:res$G, function(i) {
-                                                mean(Maindata$rawlogdata[input$OrderingTSCANtunegene,clusterid[clusterid==i]])
-                                          })
-                                          Maindata$MSTorder_TSCAN <- MSTorder <- order(meanval)
-                                    }                                    
+                              clusterid <- apply(res$z,1,which.max)
+                              clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
+                              for (cid in 1:res$G) {
+                                    clucenter[cid,] <- colMeans(t(Maindata$reduceres)[names(clusterid[clusterid==cid]),,drop=F])
                               }
-                        } else {
-                              Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
-                        }   
-                        
-                        trimclu <- setdiff(as.vector(V(MSTtree)),MSTorder)
-                        row.names(clucenter) <- paste0("clu",1:nrow(clucenter)) 
-                        trimcell <- names(clusterid[clusterid %in% trimclu])
-                        reduceres <- t(Maindata$reduceres)[setdiff(row.names(t(Maindata$reduceres)),trimcell),]
-                        if (res$G == 1 || length(MSTorder)==1) {
-                              TSCANorder <- names(sort(Maindata$reduceres[1,]))
-                        } else {
-                              TSCANorder <- NULL                              
-                              for (i in 1:length(MSTorder)) {
-                                    if (i == 1) {
+                              dp <- as.matrix(dist(clucenter))                                            
+                              gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
+                              Maindata$dp_TSCAN <- MSTtree <- minimum.spanning.tree(gp)
+                              Maindata$clucenter_TSCAN=clucenter
+                              allsp <- shortest.paths(MSTtree)
+                              longestsp <- which(allsp == max(allsp), arr.ind = T)
+                              if (input$OrderingTSCANtuneordertf) { 
+                                    if (input$OrderingTSCANtuneorderchoose=='order') {                                    
+                                          if (input$OrderingTSCANtuneorder=="") {
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                          } else {
+                                                tmp <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
+                                                tmp <- tmp[!is.na(tmp)]
+                                                tmp <- tmp[tmp <= nrow(clucenter)]
+                                                if (length(tmp) > 1) {
+                                                      Maindata$MSTorder_TSCAN <- MSTorder <- tmp                  
+                                                } else {
+                                                      Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                                }                                               
+                                          }                                    
+                                    } else if (input$OrderingTSCANtuneorderchoose=='gene') {
+                                          if (res$G == 1) {
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- 1
+                                          } else {
+                                                meanval <- sapply(1:res$G, function(i) {
+                                                      mean(Maindata$rawlogdata[input$OrderingTSCANtunegene,clusterid[clusterid==i]])
+                                                })
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- order(meanval)
+                                          }                                    
+                                    }
+                              } else {
+                                    Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                              }   
+                              
+                              #trimclu <- setdiff(as.vector(V(MSTtree)),MSTorder)
+                              row.names(clucenter) <- paste0("clu",1:nrow(clucenter)) 
+                              #trimcell <- names(clusterid[clusterid %in% trimclu])
+                              reduceres <- t(Maindata$reduceres)
+                              #reduceres <- t(Maindata$reduceres)[setdiff(row.names(t(Maindata$reduceres)),trimcell),]
+                              adjmat <- get.adjacency(MSTtree)
+                              edgeinMST <- sapply(1:(length(MSTorder)-1),function(i) {
+                                    adjmat[MSTorder[i],MSTorder[i+1]]
+                              })
+                              if (sum(edgeinMST==0) > 0) {
+                                    orderinMST <- 0
+                              } else {
+                                    orderinMST <- 1
+                              }
+                              if (res$G == 1 || length(MSTorder)==1) {
+                                    TSCANorder <- names(sort(Maindata$reduceres[1,]))
+                              } else {
+                                    TSCANorder <- NULL
+                                    for (i in 1:(length(MSTorder)-1)) {                  
                                           currentcluid <- MSTorder[i]
                                           nextcluid <- MSTorder[i + 1]
                                           currentclucenter <- clucenter[currentcluid,]
                                           nextclucenter <- clucenter[nextcluid,]
+                                          
+                                          currentreduceres <- reduceres[clusterid==currentcluid,]
+                                          if (orderinMST) {
+                                                connectcluid <- as.numeric(names(which(adjmat[currentcluid,] == 1)))      
+                                          } else {
+                                                if (i == 1) {
+                                                      connectcluid <- nextcluid      
+                                                } else {
+                                                      connectcluid <- c(nextcluid,MSTorder[i - 1])
+                                                }                        
+                                          }
+                                          
+                                          cludist <- sapply(connectcluid, function(x) {                              
+                                                rowSums(sweep(currentreduceres,2,clucenter[x,],"-")^2)
+                                          })
+                                          mindistid <- apply(cludist,1,which.min)
+                                          
+                                          edgecell <- names(which(mindistid == which(connectcluid == nextcluid)))
+                                          
                                           difvec <- nextclucenter - currentclucenter
-                                          tmppos <- reduceres[names(clusterid[clusterid==currentcluid]),] %*% difvec
-                                          pos <- as.vector(tmppos)
-                                          names(pos) <- row.names(tmppos)
-                                          TSCANorder <- c(TSCANorder,names(sort(pos)))                  
-                                    } else if (i == length(MSTorder)) {
-                                          currentcluid <- MSTorder[i]
-                                          lastcluid <- MSTorder[i - 1]
-                                          currentclucenter <- clucenter[currentcluid,]
-                                          lastclucenter <- clucenter[lastcluid,]
-                                          difvec <- currentclucenter - lastclucenter
-                                          tmppos <- reduceres[names(clusterid[clusterid==currentcluid]),] %*% difvec
-                                          pos <- as.vector(tmppos)
-                                          names(pos) <- row.names(tmppos)
-                                          TSCANorder <- c(TSCANorder,names(sort(pos)))   
-                                    } else {
-                                          currentcluid <- MSTorder[i]
-                                          nextcluid <- MSTorder[i + 1]
-                                          lastcluid <- MSTorder[i - 1]
-                                          currentclucenter <- clucenter[currentcluid,]
-                                          nextclucenter <- clucenter[nextcluid,]
-                                          lastclucenter <- clucenter[lastcluid,]
-                                          clupoints <- names(clusterid[clusterid==currentcluid])
-                                          distlast <- rowSums((reduceres[clupoints,]-lastclucenter)^2)
-                                          distnext <- rowSums((reduceres[clupoints,]-nextclucenter)^2)
-                                          lastpoints <- names(which(distlast < distnext))
-                                          nextpoints <- names(which(distlast >= distnext))                                          
-                                          difvec <- currentclucenter - lastclucenter
-                                          tmppos <- reduceres[lastpoints,] %*% difvec
-                                          pos <- as.vector(tmppos)
-                                          names(pos) <- row.names(tmppos)
-                                          TSCANorder <- c(TSCANorder,names(sort(pos)))                                            
-                                          difvec <- nextclucenter - currentclucenter
-                                          tmppos <- reduceres[nextpoints,] %*% difvec
+                                          tmppos <- reduceres[edgecell,] %*% difvec
                                           pos <- as.vector(tmppos)
                                           names(pos) <- row.names(tmppos)
                                           TSCANorder <- c(TSCANorder,names(sort(pos)))  
-                                    }
-                              }            
-                        }
-                        if (input$OrderingTSCANreversetf)
-                              TSCANorder <- rev(TSCANorder)
-                        datadist <- dist(t(Maindata$reduceres))
-                        distmat <- as.matrix(datadist)
-                        alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
-                              distmat[TSCANorder[x],TSCANorder[x+1]]
-                        })
-                        ptime <- c(0,cumsum(alldist))
-                        ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
-                        if (res$G == 1 || length(MSTorder)==1) {
-                              Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=1,Pseudotime=ptime,stringsAsFactors = F)      
-                        } else {
-                              Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)      
-                        }      
+                                          
+                                          nextreduceres <- reduceres[clusterid==nextcluid,]     
+                                          if (orderinMST) {
+                                                connectcluid <- as.numeric(names(which(adjmat[nextcluid,] == 1)))
+                                          } else {
+                                                if (i == length(MSTorder)-1) {
+                                                      connectcluid <- currentcluid      
+                                                } else {
+                                                      connectcluid <- c(currentcluid,MSTorder[i + 2])
+                                                }                        
+                                          }
+                                          
+                                          cludist <- sapply(connectcluid, function(x) { 
+                                                rowSums(sweep(nextreduceres,2,clucenter[x,],"-")^2)
+                                          })
+                                          mindistid <- apply(cludist,1,which.min)
+                                          
+                                          edgecell <- names(which(mindistid == which(connectcluid == currentcluid)))
+                                          
+                                          difvec <- nextclucenter - currentclucenter
+                                          tmppos <- reduceres[edgecell,] %*% difvec
+                                          pos <- as.vector(tmppos)
+                                          names(pos) <- row.names(tmppos)
+                                          TSCANorder <- c(TSCANorder,names(sort(pos)))  
+                                          
+                                    }          
+                              }
+                              if (input$OrderingTSCANreversetf)
+                                    TSCANorder <- rev(TSCANorder)
+                              datadist <- dist(t(Maindata$reduceres))
+                              distmat <- as.matrix(datadist)
+                              alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
+                                    distmat[TSCANorder[x],TSCANorder[x+1]]
+                              })
+                              ptime <- c(0,cumsum(alldist))
+                              ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
+                              if (res$G == 1 || length(MSTorder)==1) {
+                                    Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=1,Pseudotime=ptime,stringsAsFactors = F)      
+                              } else {
+                                    Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)      
+                              }      
                         }
                   } else if (input$Orderingptimechoosemethod=="PC" && !is.null(input$OrderingPCclunum)) {
                         coord <- t(Maindata$reduceres)
@@ -720,8 +745,8 @@ shinyServer(function(input, output,session) {
                   theme_minimal(base_size = as.numeric(input$Orderingsaveplotfontsize))+theme(panel.border = element_blank(), axis.line = element_line()) + 
                   theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
                   theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
-            labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
-                                                                            legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
+                  labs(title=titletext) + ylab(ylabtext) + xlab(xlabtext) + theme(legend.position = "top", 
+                                                                                  legend.key.height = unit(0.35, "in")) + theme(legend.key = element_blank()) + 
                   theme(panel.background = element_rect(fill = "white")) +
                   theme(axis.text.x = element_text(size=17,color="darkred"),
                         axis.text.y = element_text(size=17,color='black'),
@@ -767,60 +792,60 @@ shinyServer(function(input, output,session) {
       
       output$Orderingptimeclustershowplot <- renderPlot({
             if (!is.null(input$OrderingTSCANmarkertf) && input$OrderingTSCANmarkertf) {
-            x = as.numeric(input$OrderingTSCANxcomp)
-            y = as.numeric(input$OrderingTSCANycomp)
-            color_by = "State"
-            
-            lib_info_with_pseudo <- Maindata$scapdata
-            lib_info_with_pseudo$State <- factor(lib_info_with_pseudo$State)
-            S_matrix <- Maindata$reduceres
-            pca_space_df <- data.frame(t(S_matrix[c(x, y), ]))
-            colnames(pca_space_df) <- c("pca_dim_1","pca_dim_2")            
-            pca_space_df$sample_name <- row.names(pca_space_df)
-            edge_df <- merge(pca_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")    
-            markers_exprs <- Maindata$rawlogdata[input$OrderingTSCANmarker, ]
-            edge_df$markerexpr <- markers_exprs[edge_df$sample_name]
-            data <- data.frame(pca_dim_1=tapply(edge_df$pca_dim_1,edge_df$State,mean),pca_dim_2=tapply(edge_df$pca_dim_2,edge_df$State,mean),expr=scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1],state=1:length(unique(edge_df$State)))
-            data$state <- as.factor(data$state)
-            g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
-            g <- g + geom_point(color = "white", na.rm = TRUE)
-            
-            clucenter <- Maindata$clucenter_TSCAN[,c(x,y)]
-            clulines <- NULL
-            MSTorder <- Maindata$MSTorder_TSCAN
-            for (i in 1:(length(MSTorder)-1)) {
-                  clulines <- rbind(clulines, c(clucenter[MSTorder[i],],clucenter[MSTorder[i+1],]))
-            }
-            clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
-            g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
-            
-            g <- g + geom_point(aes(x=pca_dim_1,y=pca_dim_2,color=expr),data=data,size=10)
-            clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
-            g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
-            g <- g + scale_color_continuous(low="white",high="red")            
-            g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
-                  xlab(paste0("PCA_dimension_",x)) + ylab(paste0("PCA_dimension_",y)) +
-                  theme(panel.border = element_blank(), axis.line = element_line()) + 
-                  theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
-                  theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
-                  theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20)) + theme(legend.key = element_blank()) + 
-                  theme(panel.background = element_rect(fill = "white")) +
-                  theme(axis.text.x = element_text(size=17,color="darkred"),
-                        axis.text.y = element_text(size=17,color='black'),
-                        axis.title.x = element_text(size=20,vjust=-1),
-                        axis.title.y = element_text(size=20,vjust=1),
-                        plot.margin=unit(c(1,1,1,1),"cm"))
-            if (input$Orderingptimezoomintf) {
-                  g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
-            } else {
-                  sc1 <- 0.05 * (max(Maindata$fullreduceres[x,])-min(Maindata$fullreduceres[x,]))
-                  sc2 <- 0.05 * (max(Maindata$fullreduceres[y,])-min(Maindata$fullreduceres[y,]))
-                  g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[x,]) - sc1, max(Maindata$fullreduceres[x,])+sc1),ylim=c(min(Maindata$fullreduceres[y,])-sc2, max(Maindata$fullreduceres[y,])+sc2))
-            }  
-            g       
+                  x = as.numeric(input$OrderingTSCANxcomp)
+                  y = as.numeric(input$OrderingTSCANycomp)
+                  color_by = "State"
+                  
+                  lib_info_with_pseudo <- Maindata$scapdata
+                  lib_info_with_pseudo$State <- factor(lib_info_with_pseudo$State)
+                  S_matrix <- Maindata$reduceres
+                  pca_space_df <- data.frame(t(S_matrix[c(x, y), ]))
+                  colnames(pca_space_df) <- c("pca_dim_1","pca_dim_2")            
+                  pca_space_df$sample_name <- row.names(pca_space_df)
+                  edge_df <- merge(pca_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")    
+                  markers_exprs <- Maindata$rawlogdata[input$OrderingTSCANmarker, ]
+                  edge_df$markerexpr <- markers_exprs[edge_df$sample_name]
+                  data <- data.frame(pca_dim_1=tapply(edge_df$pca_dim_1,edge_df$State,mean),pca_dim_2=tapply(edge_df$pca_dim_2,edge_df$State,mean),expr=scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1],state=1:length(unique(edge_df$State)))
+                  data$state <- as.factor(data$state)
+                  g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
+                  g <- g + geom_point(color = "white", na.rm = TRUE)
+                  
+                  clucenter <- Maindata$clucenter_TSCAN[,c(x,y)]
+                  clulines <- NULL
+                  MSTorder <- Maindata$MSTorder_TSCAN
+                  for (i in 1:(length(MSTorder)-1)) {
+                        clulines <- rbind(clulines, c(clucenter[MSTorder[i],],clucenter[MSTorder[i+1],]))
+                  }
+                  clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
+                  g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
+                  
+                  g <- g + geom_point(aes(x=pca_dim_1,y=pca_dim_2,color=expr),data=data,size=10)
+                  clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
+                  g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
+                  g <- g + scale_color_continuous(low="white",high="red")            
+                  g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
+                        xlab(paste0("PCA_dimension_",x)) + ylab(paste0("PCA_dimension_",y)) +
+                        theme(panel.border = element_blank(), axis.line = element_line()) + 
+                        theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+                        theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+                        theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20)) + theme(legend.key = element_blank()) + 
+                        theme(panel.background = element_rect(fill = "white")) +
+                        theme(axis.text.x = element_text(size=17,color="darkred"),
+                              axis.text.y = element_text(size=17,color='black'),
+                              axis.title.x = element_text(size=20,vjust=-1),
+                              axis.title.y = element_text(size=20,vjust=1),
+                              plot.margin=unit(c(1,1,1,1),"cm"))
+                  if (input$Orderingptimezoomintf) {
+                        g <- g + coord_cartesian(xlim = c(as.numeric(input$Orderingptimezoominxaxis[1]), as.numeric(input$Orderingptimezoominxaxis[2])),ylim=c(as.numeric(input$Orderingptimezoominyaxis[1]), as.numeric(input$Orderingptimezoominyaxis[2])))
+                  } else {
+                        sc1 <- 0.05 * (max(Maindata$fullreduceres[x,])-min(Maindata$fullreduceres[x,]))
+                        sc2 <- 0.05 * (max(Maindata$fullreduceres[y,])-min(Maindata$fullreduceres[y,]))
+                        g <- g + coord_cartesian(xlim = c(min(Maindata$fullreduceres[x,]) - sc1, max(Maindata$fullreduceres[x,])+sc1),ylim=c(min(Maindata$fullreduceres[y,])-sc2, max(Maindata$fullreduceres[y,])+sc2))
+                  }  
+                  g       
             }
       })
-
+      
       output$Orderingptimeshowptime <- renderDataTable(Maindata$scapdata)
       
       #       #Step 3: starting point
