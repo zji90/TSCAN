@@ -28,7 +28,7 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
       row.names(clucenter) <- paste0("clu",1:nrow(clucenter))
       clusterid <- mclustobj$clusterid             
       pcareduceres <- mclustobj$pcareduceres            
-      adjmat <- get.adjacency(mclustobj$MSTtree)
+      adjmat <- as_adjacency_matrix(mclustobj$MSTtree,sparse=FALSE)
       if (is.null(MSTorder)) {
             orderinMST <- 1
             allsp <- shortest.paths(mclustobj$MSTtree)

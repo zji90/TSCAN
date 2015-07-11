@@ -503,7 +503,7 @@ shinyServer(function(input, output,session) {
                               #trimcell <- names(clusterid[clusterid %in% trimclu])
                               reduceres <- t(Maindata$reduceres)
                               #reduceres <- t(Maindata$reduceres)[setdiff(row.names(t(Maindata$reduceres)),trimcell),]
-                              adjmat <- get.adjacency(MSTtree)
+                              adjmat <- as_adjacency_matrix(MSTtree,sparse=FALSE)
                               edgeinMST <- sapply(1:(length(MSTorder)-1),function(i) {
                                     adjmat[MSTorder[i],MSTorder[i+1]]
                               })
