@@ -109,14 +109,14 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
             if (orderonly) {
                   TSCANorder      
             } else {
-                  datadist <- dist(mclustobj$pcareduceres)
-                  distmat <- as.matrix(datadist)
-                  alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
-                        distmat[TSCANorder[x],TSCANorder[x+1]]
-                  })
-                  ptime <- c(0,cumsum(alldist))
-                  ptime <- ptime/max(ptime) * 100
-                  data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=ptime,stringsAsFactors = F)            
+#                   datadist <- dist(mclustobj$pcareduceres)
+#                   distmat <- as.matrix(datadist)
+#                   alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
+#                         distmat[TSCANorder[x],TSCANorder[x+1]]
+#                   })
+#                   ptime <- c(0,cumsum(alldist))
+#                   ptime <- ptime/max(ptime) * 100
+                  data.frame(sample_name=TSCANorder,State=clusterid[TSCANorder],Pseudotime=1:length(TSCANorder),stringsAsFactors = F)            
             }
       }
       if (!orderinMST) {

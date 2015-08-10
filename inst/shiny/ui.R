@@ -44,7 +44,14 @@ shinyUI(
                                                         'Double Quote'='"',
                                                         'Single Quote'="'"),
                                                       '')
-                                   )                                   
+                                   ),
+                                   wellPanel(
+                                   checkboxInput("Preprocesslogtf","Take log of current data",value = T),
+                                   conditionalPanel(condition="input.Preprocesslogtf==1",
+                                                    wellPanel(radioButtons("Preprocesslogbase","Choose log base",choices = c("2","10","e")),
+                                                              textInput("Preprocesslogpseudocount","Enter pseudo count added when taking log",value = 1)
+                                                    )                                                          
+                                   ))                                                                      
                   ),
                   
                   #                   conditionalPanel(condition="input.MainMenu=='Preprocess'",
@@ -69,13 +76,7 @@ shinyUI(
                                    h5("Hierarchical clustering"),
                                    helpText("Perform hierarchical clustering to deal with potential drop out events in single-cell RNA-seq data. Genes with zero expression in all cells are excluded."),
                                    helpText("Choose number of clusters:"),
-                                   textInput("Preprocessrownum","",5), helpText("percent of all genes in the dataset"),
-                                   checkboxInput("Preprocesslogtf","Take log of current data",value = T),
-                                   conditionalPanel(condition="input.Preprocesslogtf==1",
-                                                    wellPanel(radioButtons("Preprocesslogbase","Choose log base",choices = c("2","10","e")),
-                                                              textInput("Preprocesslogpseudocount","Enter pseudo count added when taking log",value = 1)
-                                                    )                                                          
-                                   )                                   
+                                   textInput("Preprocessrownum","",5), helpText("percent of all genes in the dataset")
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Ordering'",
@@ -124,8 +125,8 @@ shinyUI(
                                                                            checkboxInput("Orderingptimetrimtf","Trim branch/cell",value=F),
                                                                            uiOutput("Orderingptimetrimui"),
                                                                            checkboxInput("Orderingptimezoomintf","Zoom in plot",value=F),
-                                                                           uiOutput("Orderingptimezoominui"),
-                                                                           textInput("Orderingptimescale","Set maximum pseudo time",value=100)                                                                           
+                                                                           uiOutput("Orderingptimezoominui")
+                                                                           #textInput("Orderingptimescale","Set maximum pseudo time",value=100)                                                                           
                                                           ),
                                                           conditionalPanel(condition="input.Orderingchoosestep=='start'&&input.Orderingptimechoosemethod=='TSCAN'",
                                                                            helpText("Use marker genesets to determine starting point. Average expression value is used for each geneset."),
@@ -245,7 +246,7 @@ shinyUI(
                                    #                                   uiOutput("Preprocessstatusui")
                                    h5("Clustering results:"),
                                    helpText("The averaged gene expressions within each cluster are used in constructing pseudo-time cell ordering."),
-                                   dataTableOutput("preprocessshowdata")
+                                   tableOutput("preprocessshowdata")
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Ordering'",

@@ -45,17 +45,35 @@ shinyServer(function(input, output,session) {
                               tmpdata <- read.table(FileHandle$datapath,header=input$Inputheader,sep=input$Inputsep,quote=input$Inputquote,stringsAsFactors=F,blank.lines.skip=TRUE)
                               Maindata$rawdata <- as.matrix(tmpdata[,-1])
                               row.names(Maindata$rawdata) <- make.names(tmpdata[,1])
+                              
                         }
                   })
       })
       
-      output$Inputshowrawtable <- renderTable(head(Maindata$rawdata))
+      observe({
+            if (!is.null(Maindata$rawdata)) {
+            tmpdata <- Maindata$rawdata
+            if (input$Preprocesslogtf) {
+                  if (input$Preprocesslogbase == "2") {
+                        tmpdata <- log2(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+                  } else if (input$Preprocesslogbase == "10") {
+                        tmpdata <- log10(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+                  } else if (input$Preprocesslogbase == "e") {
+                        tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
+                  }
+            }
+            tmpdata <- tmpdata[rowSums(tmpdata) > 0,]
+            Maindata$fullrawlogdata <- tmpdata
+            }
+      })
+      
+      output$Inputshowrawtable <- renderTable(head(Maindata$fullrawlogdata))
       
       output$Inputshowsummaryui <- renderUI({
             if (!is.null(Maindata$rawdata)) {
                   tagList(
                         h5(paste("The dataset contains",nrow(Maindata$rawdata),"numbers of genes and",ncol(Maindata$rawdata),"numbers of cells")),
-                        h5("Head of the input file:"),
+                        h5("Head of the dataset:"),
                         tableOutput("Inputshowrawtable")
                   )
             }
@@ -79,30 +97,20 @@ shinyServer(function(input, output,session) {
       ### Preprocess ###
       
       observe({
-            if (input$MainMenu == "Preprocess" && !is.null(Maindata$rawdata)) {
-                  tmpdata <- Maindata$rawdata
-                  if (input$Preprocesslogtf) {
-                        if (input$Preprocesslogbase == "2") {
-                              tmpdata <- log2(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-                        } else if (input$Preprocesslogbase == "10") {
-                              tmpdata <- log10(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-                        } else if (input$Preprocesslogbase == "e") {
-                              tmpdata <- log(tmpdata+as.numeric(input$Preprocesslogpseudocount))
-                        }
-                  }
-                  tmpdata <- tmpdata[rowSums(tmpdata) > 0,]
-                  Maindata$fullrawlogdata <- tmpdata
+            if (input$MainMenu == "Preprocess" && !is.null(Maindata$fullrawlogdata)) {                  
+                  tmpdata <- Maindata$fullrawlogdata
+                  set.seed(12345)
                   clures <- hclust(dist(tmpdata))
-                  cluster <- cutree(clures,0.05*nrow(tmpdata))                  
+                  cluster <- cutree(clures,as.numeric(input$Preprocessrownum)/100*nrow(tmpdata))                  
                   aggdata <- aggregate(tmpdata,list(cluster),mean)   
-                  aggdata <- aggdata[,-1]
+                  aggdata <- aggdata[,-1]                  
                   tmpdata <- t(apply(aggdata,1,scale))
                   colnames(tmpdata) <- colnames(aggdata)
                   Maindata$fullprocdata <- as.matrix(tmpdata)                  
             }
       })
       
-      output$preprocessshowdata <- renderDataTable(head(Maindata$fullprocdata))
+      output$preprocessshowdata <- renderTable(head(Maindata$fullprocdata))
       
       #       observe({
       #             if (input$MainMenu == "Preprocess" && !is.null(Maindata$rawdata)) {
@@ -346,10 +354,10 @@ shinyServer(function(input, output,session) {
                   colcolorall <- rep("cyan",ncol(Maindata$rawlogdata))
                   colcolorall[Maindata$trimexprcelllist] <- "blue"
                   if (nrow(Maindata$trimexprlist) == 1) {
-                        plot(Maindata$rawlogdata[Maindata$trimexprlist[,1],],col=colcolorall,lty=19,ylab="Expression value")     
-                        legend("topleft",legend=c("Trimmed cells","Retained cells"),lty=19,col=c("blue","cyan"))                        
+                        plot(Maindata$rawlogdata[Maindata$trimexprlist[,1],],col=colcolorall,pch=19,ylab="Expression value")     
+                        legend("topleft",legend=c("Trimmed cells","Retained cells"),pch=19,col=c("blue","cyan"))                        
                   } else {
-                        heatmap.2(Maindata$rawlogdata[Maindata$trimexprlist[,1],,drop=F],col=bluered,Colv=F,dendrogram="none",trace="none",Rowv=F,ColSideColors=colcolorall,useRaster=T,cexRow=0.7,srtRow=-45)
+                        heatmap.2(Maindata$rawlogdata[Maindata$trimexprlist[,1],,drop=F],col=bluered,Colv=F,dendrogram="none",trace="none",Rowv=F,ColSideColors=colcolorall,useRaster=T,cexRow=1,srtRow=-45,margins=c(5,10),lwid=c(0.25,1))
                         legend("bottomleft",legend=c("Trimmed cells","Retained cells"),lwd=1,col=c("blue","cyan"))                        
                   }                  
             }            
@@ -574,13 +582,14 @@ shinyServer(function(input, output,session) {
                               }
                               if (input$OrderingTSCANreversetf)
                                     TSCANorder <- rev(TSCANorder)
-                              datadist <- dist(t(Maindata$reduceres))
-                              distmat <- as.matrix(datadist)
-                              alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
-                                    distmat[TSCANorder[x],TSCANorder[x+1]]
-                              })
-                              ptime <- c(0,cumsum(alldist))
-                              ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
+#                               datadist <- dist(t(Maindata$reduceres))
+#                               distmat <- as.matrix(datadist)
+#                               alldist <- sapply(1:(length(TSCANorder)-1), function(x) {
+#                                     distmat[TSCANorder[x],TSCANorder[x+1]]
+#                               })
+#                               ptime <- c(0,cumsum(alldist))
+#                               ptime <- ptime/max(ptime) * as.numeric(input$Orderingptimescale)
+                              ptime <- 1:length(TSCANorder)
                               if (res$G == 1 || length(MSTorder)==1) {
                                     Maindata$scapdata <- data.frame(sample_name=TSCANorder,State=1,Pseudotime=ptime,stringsAsFactors = F)      
                               } else {
@@ -1186,7 +1195,7 @@ shinyServer(function(input, output,session) {
       })
       
       output$Difftestheatmap <- renderPlot({
-            heatmap.2(Maindata$Difftestdata,trace="none")
+            heatmap.2(Maindata$Difftestdata,trace="none",scale = "row")
       })
       
       output$Difftestsaveplot <- downloadHandler(
@@ -1197,7 +1206,7 @@ shinyServer(function(input, output,session) {
                   } else if (input$Difftestplottype == 'ps') {
                         postscript(file,width=as.numeric(input$Difftestfilewidth),height=as.numeric(input$Difftestfileheight),paper="special")
                   }                  
-                  heatmap.2(Maindata$Difftestdata,trace="none")
+                  heatmap.2(Maindata$Difftestdata,trace="none",scale = "row")
                   dev.off()
             }
       )
@@ -1249,8 +1258,8 @@ shinyServer(function(input, output,session) {
                   model <- mgcv::gam(tmpdata~s(ptime,k=3))
                   lines(ptime,fitted(model))                  
             } else {
-                  if (!is.null(input$Visualizationmethod) && input$Visualizationmethod) {
-                        heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,srtRow=-45,lwid=c(0.2,1))          
+                  if (!is.null(input$Visualizationmethod) && input$Visualizationmethod) {                        
+                        heatmap.2(tmpdata,Rowv = F,Colv = F,col = bluered,symbreaks=F,dendrogram="none",trace="none",cexRow=1,margins=c(5,10),srtRow=-45,lwid=c(0.2,1),scale="row")          
                   } else {
                         par(mfrow=c(nrow(tmpdata),1))
                         for (i in 1:nrow(tmpdata)) {                                    
