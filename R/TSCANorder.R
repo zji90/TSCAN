@@ -31,9 +31,17 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
       adjmat <- as_adjacency_matrix(mclustobj$MSTtree,sparse=FALSE)
       if (is.null(MSTorder)) {
             orderinMST <- 1
-            allsp <- shortest.paths(mclustobj$MSTtree)
-            longestsp <- which(allsp == max(allsp), arr.ind = T)
-            MSTorder <- get.shortest.paths(mclustobj$MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]        
+            clutable <- table(mclustobj$clusterid)
+            alldeg <- degree(mclustobj$MSTtree)
+            allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg==1]),as.numeric(names(alldeg)[alldeg==1]))
+            allcomb <- allcomb[allcomb[,1] < allcomb[,2],]
+            numres <- t(apply(allcomb, 1, function(i) {
+                  tmp <- as.vector(get.shortest.paths(mclustobj$MSTtree,i[1],i[2])$vpath[[1]])
+                  c(length(tmp), sum(clutable[tmp]))
+            }))
+            optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
+            MSTorder <- get.shortest.paths(mclustobj$MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
+            print(MSTorder)
             if (flip) {
                   MSTorder <- rev(MSTorder)
             }

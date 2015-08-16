@@ -1,8 +1,8 @@
 Package: TSCAN
 Type: Package
 Title: TSCAN: Tools for Single-Cell ANalysis
-Version: 1.5.0
-Date: 2015-5-31
+Version: 1.7.0
+Date: 2015-8-15
 Author: Zhicheng Ji, Hongkai Ji
 Maintainer: Zhicheng Ji <zji4@jhu.edu>
 Description: TSCAN enables users to easily construct and tune pseudotemporal

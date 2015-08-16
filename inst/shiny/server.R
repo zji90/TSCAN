@@ -97,16 +97,20 @@ shinyServer(function(input, output,session) {
       ### Preprocess ###
       
       observe({
-            if (input$MainMenu == "Preprocess" && !is.null(Maindata$fullrawlogdata)) {                  
-                  tmpdata <- Maindata$fullrawlogdata
-                  set.seed(12345)
-                  clures <- hclust(dist(tmpdata))
-                  cluster <- cutree(clures,as.numeric(input$Preprocessrownum)/100*nrow(tmpdata))                  
-                  aggdata <- aggregate(tmpdata,list(cluster),mean)   
-                  aggdata <- aggdata[,-1]                  
-                  tmpdata <- t(apply(aggdata,1,scale))
-                  colnames(tmpdata) <- colnames(aggdata)
-                  Maindata$fullprocdata <- as.matrix(tmpdata)                  
+            if (input$MainMenu == "Preprocess" && !is.null(Maindata$fullrawlogdata)) {
+                  if (input$Preprocessclustertf) {
+                        aggdata <- Maindata$fullrawlogdata
+                  } else {
+                        tmpdata <- Maindata$fullrawlogdata
+                        set.seed(12345)
+                        clures <- hclust(dist(tmpdata))
+                        cluster <- cutree(clures,as.numeric(input$Preprocessrownum)/100*nrow(tmpdata))                  
+                        aggdata <- aggregate(tmpdata,list(cluster),mean)   
+                        aggdata <- aggdata[,-1]  
+                  }
+                        tmpdata <- t(apply(aggdata,1,scale))
+                        colnames(tmpdata) <- colnames(aggdata)
+                        Maindata$fullprocdata <- as.matrix(tmpdata)                        
             }
       })
       
@@ -437,7 +441,7 @@ shinyServer(function(input, output,session) {
             if (!is.null(Maindata$reduceres) && input$Orderingptimechoosemethod=="TSCAN") {
                   input$OrderingTSCANoptclunum
                   isolate({
-                        optnum <- tryCatch(Mclust(t(Maindata$reduceres),modelNames="VVV")$G,warning=function(w) {}, error=function(e) {})
+                        optnum <- tryCatch(Mclust(t(Maindata$reduceres),G=2:9,modelNames="VVV")$G,warning=function(w) {}, error=function(e) {})
                         updateSliderInput(session,"OrderingTSCANclunum","Choose number of cell clusters",value=as.numeric(optnum))
                   })
             }
@@ -471,17 +475,25 @@ shinyServer(function(input, output,session) {
                               clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
                               for (cid in 1:res$G) {
                                     clucenter[cid,] <- colMeans(t(Maindata$reduceres)[names(clusterid[clusterid==cid]),,drop=F])
-                              }
+                              }                              
                               dp <- as.matrix(dist(clucenter))                                            
                               gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
                               Maindata$dp_TSCAN <- MSTtree <- minimum.spanning.tree(gp)
-                              Maindata$clucenter_TSCAN=clucenter
-                              allsp <- shortest.paths(MSTtree)
-                              longestsp <- which(allsp == max(allsp), arr.ind = T)
+                              Maindata$clucenter_TSCAN <- clucenter
+                              clutable <- table(clusterid)
+                              alldeg <- degree(MSTtree)
+                              allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg==1]),as.numeric(names(alldeg)[alldeg==1]))
+                              allcomb <- allcomb[allcomb[,1] < allcomb[,2],]
+                              numres <- t(apply(allcomb, 1, function(i) {
+                                    tmp <- as.vector(get.shortest.paths(MSTtree,i[1],i[2])$vpath[[1]])
+                                    c(length(tmp), sum(clutable[tmp]))
+                              }))
+                              optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
+                              optorder <- get.shortest.paths(MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
                               if (input$OrderingTSCANtuneordertf) { 
-                                    if (input$OrderingTSCANtuneorderchoose=='order') {                                    
+                                    if (input$OrderingTSCANtuneorderchoose=='order') {                                             
                                           if (input$OrderingTSCANtuneorder=="") {
-                                                Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- optorder
                                           } else {
                                                 tmp <- as.numeric(strsplit(input$OrderingTSCANtuneorder,",")[[1]])
                                                 tmp <- tmp[!is.na(tmp)]
@@ -489,7 +501,7 @@ shinyServer(function(input, output,session) {
                                                 if (length(tmp) > 1) {
                                                       Maindata$MSTorder_TSCAN <- MSTorder <- tmp                  
                                                 } else {
-                                                      Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                                      Maindata$MSTorder_TSCAN <- MSTorder <- optorder
                                                 }                                               
                                           }                                    
                                     } else if (input$OrderingTSCANtuneorderchoose=='gene') {
@@ -503,7 +515,7 @@ shinyServer(function(input, output,session) {
                                           }                                    
                                     }
                               } else {
-                                    Maindata$MSTorder_TSCAN <- MSTorder <- get.shortest.paths(MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]      
+                                    Maindata$MSTorder_TSCAN <- MSTorder <- optorder
                               }   
                               
                               #trimclu <- setdiff(as.vector(V(MSTtree)),MSTorder)
@@ -799,6 +811,10 @@ shinyServer(function(input, output,session) {
             }
       })
       
+      output$OrderingshowMST <- renderPlot({
+            plot(Maindata$dp_TSCAN)
+      })
+
       output$Orderingptimeclustershowplot <- renderPlot({
             if (!is.null(input$OrderingTSCANmarkertf) && input$OrderingTSCANmarkertf) {
                   x = as.numeric(input$OrderingTSCANxcomp)
@@ -813,12 +829,13 @@ shinyServer(function(input, output,session) {
                   pca_space_df$sample_name <- row.names(pca_space_df)
                   edge_df <- merge(pca_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")    
                   markers_exprs <- Maindata$rawlogdata[input$OrderingTSCANmarker, ]
-                  edge_df$markerexpr <- markers_exprs[edge_df$sample_name]
-                  data <- data.frame(pca_dim_1=tapply(edge_df$pca_dim_1,edge_df$State,mean),pca_dim_2=tapply(edge_df$pca_dim_2,edge_df$State,mean),expr=scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1],state=1:length(unique(edge_df$State)))
+                  edge_df$markerexpr <- markers_exprs[edge_df$sample_name]                  
+                  tmpexpr <- scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1]    
+                  print(tapply(edge_df$markerexpr,edge_df$State,mean))
+                  data <- data.frame(pca_dim_1=Maindata$clucenter_TSCAN[as.numeric(names(tmpexpr)),x],pca_dim_2=Maindata$clucenter_TSCAN[as.numeric(names(tmpexpr)),y],expr=tmpexpr,state=as.numeric(names(tmpexpr)))
                   data$state <- as.factor(data$state)
                   g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
-                  g <- g + geom_point(color = "white", na.rm = TRUE)
-                  
+                  g <- g + geom_point(color = "white", na.rm = TRUE)                  
                   clucenter <- Maindata$clucenter_TSCAN[,c(x,y)]
                   clulines <- NULL
                   MSTorder <- Maindata$MSTorder_TSCAN
@@ -826,11 +843,15 @@ shinyServer(function(input, output,session) {
                         clulines <- rbind(clulines, c(clucenter[MSTorder[i],],clucenter[MSTorder[i+1],]))
                   }
                   clulines <- data.frame(x=clulines[,1],xend=clulines[,3],y=clulines[,2],yend=clulines[,4])
-                  g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)
-                  
-                  g <- g + geom_point(aes(x=pca_dim_1,y=pca_dim_2,color=expr),data=data,size=10)
-                  clucenter <- data.frame(x=clucenter[,1],y=clucenter[,2],id=1:nrow(clucenter))
+                  g <- g + geom_segment(aes_string(x="x",xend="xend",y="y",yend="yend",size=NULL),data=clulines,size=1)                  
+                  g <- g + geom_point(aes(x=pca_dim_1,y=pca_dim_2,color=expr),data=data,size=10)                  
+                  clucenter <- data.frame(x=clucenter[as.numeric(names(tmpexpr)),1],y=clucenter[as.numeric(names(tmpexpr)),2],id=as.numeric(names(tmpexpr)))                  
+                  textclucenter <- clucenter
+                  textclucenter$y <- textclucenter$y - (max(edge_df$pca_dim_2)-min(edge_df$pca_dim_2))*0.1                  
+                  textclucenter$id <- round(tmpexpr,3)                                    
                   g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=clucenter,size=10)
+                  g <- g + geom_text(aes_string(label="id",x="x",y="y",size=NULL),data=textclucenter,size=7)
+                  
                   g <- g + scale_color_continuous(low="white",high="red")            
                   g <- g + guides(colour = guide_legend(override.aes = list(size=5))) + 
                         xlab(paste0("PCA_dimension_",x)) + ylab(paste0("PCA_dimension_",y)) +

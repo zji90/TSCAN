@@ -75,8 +75,11 @@ shinyUI(
                   conditionalPanel(condition="input.MainMenu=='Preprocess'",                                   
                                    h5("Hierarchical clustering"),
                                    helpText("Perform hierarchical clustering to deal with potential drop out events in single-cell RNA-seq data. Genes with zero expression in all cells are excluded."),
-                                   helpText("Choose number of clusters:"),
-                                   textInput("Preprocessrownum","",5), helpText("percent of all genes in the dataset")
+                                   checkboxInput("Preprocessclustertf","Do not perform clustering",value=T),
+                                   conditionalPanel(condition="input.Preprocessclustertf==0",
+                                                    helpText("Choose number of clusters:"),
+                                                    textInput("Preprocessrownum","",5), 
+                                                    helpText("percent of all genes in the dataset"))                                   
                   ),
                   
                   conditionalPanel(condition="input.MainMenu=='Ordering'",
@@ -262,7 +265,10 @@ shinyUI(
                                                     ),
                                                     conditionalPanel(condition="input.Orderingchoosestep=='ptime'",
                                                                      tabsetPanel(
-                                                                           tabPanel("Plot",plotOutput("Orderingptimeshowplot",width = "800px",height = "800px"),plotOutput("Orderingptimeclustershowplot",width = "400px",height = "400px")),
+                                                                           tabPanel("Plot",
+                                                                                    checkboxInput("OrderingshowMSTTF","Show MST Sketch"),
+                                                                                    conditionalPanel(condition="input.OrderingshowMSTTF==1",h5("Note:"),p("The positions of clusters on the sketch and on the main plot are not the same."),plotOutput("OrderingshowMST",width = "400px",height = "400px")),
+                                                                                    plotOutput("Orderingptimeshowplot",width = "800px",height = "800px"),plotOutput("Orderingptimeclustershowplot",width = "400px",height = "400px")),
                                                                            tabPanel("Pseudo time",dataTableOutput("Orderingptimeshowptime")),
                                                                            tabPanel("Trim expression",
                                                                                     h5("This tabset shows the details of trimming cells according to expression values"),
