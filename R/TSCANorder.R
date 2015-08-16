@@ -9,7 +9,7 @@
 #' @param MSTorder A numeric vector specifying the order of clusters.
 #' @param orderonly Only return the ordering. State or pseudotime information will not be returned
 #' @param flip whether to flip the ordering
-#' @param listbranch whether to list the ordering results of all possible branches
+#' @param listbranch whether to list the ordering results of all possible branches in MST. Only works if MSTorder in NULL.
 #' @return if orderonly = F, a vector of ordered cell names. if orderonly = T, a data frame of ordered cell names, cell states and pseudotime. 
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
@@ -40,8 +40,8 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
                   c(length(tmp), sum(clutable[tmp]))
             }))
             optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
+            branchcomb <- allcomb[-order(numres[,1],numres[,2],decreasing = T)[1],]
             MSTorder <- get.shortest.paths(mclustobj$MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
-            print(MSTorder)
             if (flip) {
                   MSTorder <- rev(MSTorder)
             }
@@ -130,12 +130,11 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
       if (!orderinMST) {
             internalorderfunc(MSTorder,0)            
       } else {
-            if (listbranch) {
-                  branchnode <- setdiff(as.vector(V(mclustobj$MSTtree)),MSTorder)
+            if (exists("branchcomb") & listbranch) {                  
                   allres <- list()
-                  allres[[paste("backbone",paste(MSTorder,collapse = ','))]] <- internalorderfunc(MSTorder,1)  
-                  for (tmpnode in branchnode) {
-                        tmporder <- get.shortest.paths(mclustobj$MSTtree,MSTorder[1],tmpnode)$vpath[[1]] 
+                  allres[[paste("backbone",paste(MSTorder,collapse = ','))]] <- internalorderfunc(MSTorder,1)                    
+                  for (tmpcombid in 1:nrow(branchcomb)) {
+                        tmporder <- get.shortest.paths(mclustobj$MSTtree,branchcomb[tmpcombid,1],branchcomb[tmpcombid,2])$vpath[[1]] 
                         allres[[paste("branch:",paste(tmporder,collapse = ','))]] <- internalorderfunc(tmporder,1)
                   }
                   allres

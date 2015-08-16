@@ -388,17 +388,18 @@ shinyServer(function(input, output,session) {
                         sliderInput("OrderingTSCANclunum","Choose number of cell clusters. (Model-based clustering may not be applicable for large cluster numbers)",min=1,max=20,step=1,value=3),
                         p(actionButton("OrderingTSCANoptclunum","Use optimal cluster number")),
                         checkboxInput("OrderingTSCANreversetf","Reverse the ordering",value=F),
-                        checkboxInput("OrderingTSCANtuneordertf","Manually tune ordering"),
+                        checkboxInput("OrderingTSCANtuneordertf","Manually tune ordering",value=F),
                         conditionalPanel(condition="input.OrderingTSCANtuneordertf=='1'",
-                                         selectInput("OrderingTSCANtuneorderchoose","",choices=list("List cluster order"="order","Use marker gene expression"="gene")),
+                                         selectInput("OrderingTSCANtuneorderchoose","",choices=list("Select MST paths"="path","List cluster order"="order","Use marker gene expression"="gene")),
+                                         conditionalPanel("input.OrderingTSCANtuneorderchoose=='path'",uiOutput("OrderingTSCANtuneorderpathui")),
                                          conditionalPanel("input.OrderingTSCANtuneorderchoose=='order'",textInput("OrderingTSCANtuneorder","Ordering should be seperated by comma (For example: 1,3,2)")),
                                          conditionalPanel("input.OrderingTSCANtuneorderchoose=='gene'",helpText("Clusters will be reordered so the averaged marker gene expression of clusters changes monotonically"),selectInput("OrderingTSCANtunegene","Select marker gene",choices = row.names(Maindata$fullrawlogdata)))
                         ),
-                        checkboxInput("OrderingTSCANshow_tree","Show MST",value = F),                        
-                        checkboxInput("OrderingTSCANshow_cell_names","Show cell name",value=T),
-                        conditionalPanel(condition="input.OrderingTSCANshow_cell_names=='1'",textInput("OrderingTSCANcell_name_size","Choose the size of cell name labels",value = 3)),
                         checkboxInput("OrderingTSCANmarkertf","Visualize marker gene",value=F),
-                        conditionalPanel(condition="input.OrderingTSCANmarkertf=='1'",helpText("Node size is defined by gene expression"),uiOutput("OrderingTSCANmarkerui")),
+                        conditionalPanel(condition="input.OrderingTSCANmarkertf=='1'",helpText("Node size is defined by gene expression"),uiOutput("OrderingTSCANmarkerui")),                        
+                        checkboxInput("OrderingTSCANshow_tree","Show MST",value = T),                        
+                        checkboxInput("OrderingTSCANshow_cell_names","Show cell name",value=F),
+                        conditionalPanel(condition="input.OrderingTSCANshow_cell_names=='1'",textInput("OrderingTSCANcell_name_size","Choose the size of cell name labels",value = 3)),
                         sliderInput("OrderingTSCANxcomp","Component displayed on x axis",1,as.numeric(input$Orderingdimredncomp),value=1,step=1),
                         sliderInput("OrderingTSCANycomp","Component displayed on y axis",1,as.numeric(input$Orderingdimredncomp),value=2,step=1) 
                   )
@@ -447,6 +448,26 @@ shinyServer(function(input, output,session) {
             }
       })
       
+      output$OrderingTSCANtuneorderpathui <- renderUI({
+            res <- tryCatch(Mclust(t(Maindata$reduceres),G=as.numeric(input$OrderingTSCANclunum),modelNames="VVV"),warning=function(w) {}, error=function(e) {})
+            clusterid <- apply(res$z,1,which.max)
+            clucenter <- matrix(0,ncol=ncol(t(Maindata$reduceres)),nrow=res$G)
+            for (cid in 1:res$G) {
+                  clucenter[cid,] <- colMeans(t(Maindata$reduceres)[names(clusterid[clusterid==cid]),,drop=F])
+            }                              
+            dp <- as.matrix(dist(clucenter))                                            
+            gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
+            MSTtree <- minimum.spanning.tree(gp)
+            alldeg <- degree(MSTtree)
+            allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg==1]),as.numeric(names(alldeg)[alldeg==1]))
+            allcomb <- allcomb[allcomb[,1] < allcomb[,2],]
+            numres <- NULL
+            for (i in 1:nrow(allcomb)) {
+                  numres <- c(numres,paste0(as.vector(get.shortest.paths(MSTtree,allcomb[i,1],allcomb[i,2])$vpath[[1]]),collapse = ","))
+            }
+            selectInput("OrderingTSCANtuneorderpathselect","",numres)
+      })
+      
       observe({
             if (!is.null(Maindata$reduceres)) {
                   if (input$Orderingptimechoosemethod=="Monocle" && !is.null(input$OrderingMonoclepathnum) && !is.null(Maindata$reduceres)) { 
@@ -491,7 +512,14 @@ shinyServer(function(input, output,session) {
                               optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
                               optorder <- get.shortest.paths(MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
                               if (input$OrderingTSCANtuneordertf) { 
-                                    if (input$OrderingTSCANtuneorderchoose=='order') {                                             
+                                    if (input$OrderingTSCANtuneorderchoose=='path') {
+                                          if (is.null(input$OrderingTSCANtuneorderpathselect)) {
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- optorder
+                                          } else {
+                                                tmp <- as.numeric(strsplit(input$OrderingTSCANtuneorderpathselect,",")[[1]])                                          
+                                                Maindata$MSTorder_TSCAN <- MSTorder <- tmp                                                    
+                                          }
+                                    } else if (input$OrderingTSCANtuneorderchoose=='order') {                                             
                                           if (input$OrderingTSCANtuneorder=="") {
                                                 Maindata$MSTorder_TSCAN <- MSTorder <- optorder
                                           } else {
@@ -633,7 +661,7 @@ shinyServer(function(input, output,session) {
       })
       
       output$OrderingTSCANmarkerui <- renderUI({
-            selectInput("OrderingTSCANmarker","select marker gene",choices = row.names(Maindata$fullrawlogdata))
+            selectInput("OrderingTSCANmarker","Select marker gene",choices = row.names(Maindata$fullrawlogdata))
       })
       
       output$OrderingMonoclerootcellui <- renderUI({
