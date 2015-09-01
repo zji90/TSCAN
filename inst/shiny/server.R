@@ -42,7 +42,9 @@ shinyServer(function(input, output,session) {
                   isolate({
                         FileHandle <- input$InputFile
                         if (!is.null(FileHandle)) {
+                              withProgress(message = 'Reading in Dataset...',{
                               tmpdata <- read.table(FileHandle$datapath,header=input$Inputheader,sep=input$Inputsep,quote=input$Inputquote,stringsAsFactors=F,blank.lines.skip=TRUE)
+                              })
                               Maindata$rawdata <- as.matrix(tmpdata[,-1])
                               row.names(Maindata$rawdata) <- make.names(tmpdata[,1])
                               
@@ -103,7 +105,9 @@ shinyServer(function(input, output,session) {
                   } else {
                         tmpdata <- Maindata$fullrawlogdata
                         set.seed(12345)
+                        withProgress(message = 'Performing clustering...',{
                         clures <- hclust(dist(tmpdata))
+                        })
                         cluster <- cutree(clures,as.numeric(input$Preprocessrownum)/100*nrow(tmpdata))                  
                         aggdata <- aggregate(tmpdata,list(cluster),mean)   
                         aggdata <- aggdata[,-1]  
@@ -859,7 +863,6 @@ shinyServer(function(input, output,session) {
                   markers_exprs <- Maindata$rawlogdata[input$OrderingTSCANmarker, ]
                   edge_df$markerexpr <- markers_exprs[edge_df$sample_name]                  
                   tmpexpr <- scale(tapply(edge_df$markerexpr,edge_df$State,mean))[,1]    
-                  print(tapply(edge_df$markerexpr,edge_df$State,mean))
                   data <- data.frame(pca_dim_1=Maindata$clucenter_TSCAN[as.numeric(names(tmpexpr)),x],pca_dim_2=Maindata$clucenter_TSCAN[as.numeric(names(tmpexpr)),y],expr=tmpexpr,state=as.numeric(names(tmpexpr)))
                   data$state <- as.factor(data$state)
                   g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))

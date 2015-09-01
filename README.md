@@ -24,6 +24,9 @@ TSCANui()
 ```
 For users with R programming experience, command line tools are also available in TSCAN R package. Please check the manual package included in the package for details.
 
+## TSCAN Datasets
+The example datasets for TSCAN paper can be downloaded on Github: https://github.com/zji90/TSCANdata
+
 ## Contact the Author
 Author: Zhicheng Ji, Hongkai Ji
 

@@ -75,7 +75,7 @@ shinyUI(
                   conditionalPanel(condition="input.MainMenu=='Preprocess'",                                   
                                    h5("Hierarchical clustering"),
                                    helpText("Perform hierarchical clustering to deal with potential drop out events in single-cell RNA-seq data. Genes with zero expression in all cells are excluded."),
-                                   checkboxInput("Preprocessclustertf","Do not perform clustering",value=T),
+                                   checkboxInput("Preprocessclustertf","Do not perform clustering",value=F),
                                    conditionalPanel(condition="input.Preprocessclustertf==0",
                                                     helpText("Choose number of clusters:"),
                                                     textInput("Preprocessrownum","",5), 
