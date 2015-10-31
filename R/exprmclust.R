@@ -52,7 +52,10 @@ exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T) {
       
       clusternum <- clusternum[clusternum > 1]
       
-      res <- suppressWarnings(Mclust(pcareduceres,G=clusternum,modelNames="VVV"))
+      res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VVV"),error=function(e) {}, warning=function(w) {})
+      if (is.null(res)) {
+            res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VEV"),error=function(e) {}, warning=function(w) {})
+      }
       clusterid <- apply(res$z,1,which.max)
       clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=res$G)
       for (cid in 1:res$G) {
