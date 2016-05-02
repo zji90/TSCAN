@@ -2,3 +2,4 @@ name: TSCAN
 account: zhiji
 bundleId: 287116
 url: https://zhiji.shinyapps.io/TSCAN
+server: shinyapps.io

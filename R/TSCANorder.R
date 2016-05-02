@@ -83,7 +83,7 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
                   edgecell <- names(which(mindistid == which(connectcluid == nextcluid)))
                   
                   difvec <- nextclucenter - currentclucenter
-                  tmppos <- pcareduceres[edgecell,] %*% difvec
+                  tmppos <- pcareduceres[edgecell,,drop=F] %*% difvec
                   pos <- as.vector(tmppos)
                   names(pos) <- row.names(tmppos)
                   TSCANorder <- c(TSCANorder,names(sort(pos)))  
@@ -107,7 +107,7 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
                   edgecell <- names(which(mindistid == which(connectcluid == currentcluid)))
                   
                   difvec <- nextclucenter - currentclucenter
-                  tmppos <- pcareduceres[edgecell,] %*% difvec
+                  tmppos <- pcareduceres[edgecell,,drop=F] %*% difvec
                   pos <- as.vector(tmppos)
                   names(pos) <- row.names(tmppos)
                   TSCANorder <- c(TSCANorder,names(sort(pos)))  
