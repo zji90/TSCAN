@@ -5,7 +5,7 @@ TSCAN: Tools For Single-Cell ANalysis
 Given single-cell RNA-seq data and true experiment time of cells or pseudo-time cell ordering, TSCAN provides convenient functions for users to assign genes into different gene expression patterns such as constant, monotone increasing and increasing then decreasing. TSCAN then performs GO enrichment analysis to analysis the functional roles of genes with same or similar patterns.
 
 ## TSCAN Online User Interface
-TSCAN user interface can be directly launched online without installing any software package: https://zhiji.shinyapps.io/TSCAN. PLEASE NOTE: Currently the online version only allows one concurrent user. If the online user interface shows "please wait" for a long time, probably another user is using the online interface and please come back at another time. Users are recommended to install TSCAN on their own computers with following procedures.
+TSCAN user interface can be directly launched online without installing any software package: https://zhiji.shinyapps.io/TSCAN. 
 
 ## TSCAN Installation
 
