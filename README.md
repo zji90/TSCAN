@@ -2,7 +2,7 @@ TSCAN: Tools For Single-Cell ANalysis
 ====
 
 ## Overview
-Given single-cell RNA-seq data and true experiment time of cells or pseudo-time cell ordering, TSCAN provides convenient functions for users to assign genes into different gene expression patterns such as constant, monotone increasing and increasing then decreasing. TSCAN then performs GO enrichment analysis to analysis the functional roles of genes with same or similar patterns.
+TSCAN is a software tool developed to better support in silico pseudo-Time reconstruction in Single-Cell RNA-seq ANalysis. TSCAN uses a cluster-based minimum spanning tree (MST) approach to order cells. Cells are first grouped into clusters and an MST is then constructed to connect cluster centers. Pseudo-time is obtained by projecting each cell onto the tree, and the ordered sequence of cells can be used to study dynamic changes of gene expression along the pseudo-time. Clustering cells before MST construction reduces the complexity of the tree space. This often leads to improved cell ordering. It also allows users to conveniently adjust the ordering based on prior knowledge.
 
 ## TSCAN Online User Interface
 TSCAN user interface can be directly launched online without installing any software package: https://zhiji.shinyapps.io/TSCAN. 
