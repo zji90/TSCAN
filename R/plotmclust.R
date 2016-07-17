@@ -48,9 +48,22 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
             clucenter <- mclustobj$clucenter[,c(x,y)]
             clulines <- NULL
             if (is.null(MSTorder)) {
-                  allsp <- shortest.paths(mclustobj$MSTtree)
-                  longestsp <- which(allsp == max(allsp), arr.ind = T)
-                  MSTorder <- get.shortest.paths(mclustobj$MSTtree,longestsp[1,1],longestsp[1,2])$vpath[[1]]             
+                  clutable <- table(mclustobj$clusterid)
+                  alldeg <- degree(mclustobj$MSTtree)
+                  allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg == 
+                                                                        1]), as.numeric(names(alldeg)[alldeg == 1]))
+                  allcomb <- allcomb[allcomb[, 1] < allcomb[, 2], ]
+                  numres <- t(apply(allcomb, 1, function(i) {
+                        tmp <- as.vector(get.shortest.paths(mclustobj$MSTtree, 
+                                                            i[1], i[2])$vpath[[1]])
+                        c(length(tmp), sum(clutable[tmp]))
+                  }))
+                  optcomb <- allcomb[order(numres[, 1], numres[, 2], decreasing = T)[1], 
+                                     ]
+                  branchcomb <- allcomb[-order(numres[, 1], numres[, 2], 
+                                               decreasing = T)[1], ]
+                  MSTorder <- get.shortest.paths(mclustobj$MSTtree, optcomb[1], 
+                                                 optcomb[2])$vpath[[1]]
             }            
             for (i in 1:(length(MSTorder)-1)) {
                   clulines <- rbind(clulines, c(clucenter[MSTorder[i],],clucenter[MSTorder[i+1],]))
