@@ -10,6 +10,7 @@
 #' @param orderonly Only return the ordering. State or pseudotime information will not be returned
 #' @param flip whether to flip the ordering
 #' @param listbranch whether to list the ordering results of all possible branches in MST. Only works if MSTorder in NULL.
+#' @param divide for a cluster that are linked to multiple clusters, whether each cell in the cluster can only appear in one of the branches. If TRUE, then the cells in the cluster will be divided based on their distances to the linked clusters and placed separately in different branches. If FALSE, then all cells in the cluster will appear in multiple branches.
 #' @return if orderonly = F, a vector of ordered cell names. if orderonly = T, a data frame of ordered cell names, cell states and pseudotime. 
 #' @export
 #' @author Zhicheng Ji, Hongkai Ji <zji4@@zji4.edu>
@@ -19,7 +20,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' TSCANorder(lpsmclust)
 
-TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F) {
+TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F,divide=T) {
       if (!is.null(MSTorder) & length(MSTorder) == 1) {
             stop("MSTorder is not a path!")
       }
@@ -49,10 +50,14 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F
             edgeinMST <- sapply(1:(length(MSTorder)-1),function(i) {
                   adjmat[MSTorder[i],MSTorder[i+1]]
             })
-            if (sum(edgeinMST==0) > 0) {
-                  orderinMST <- 0
+            if (divide) {
+                  if (sum(edgeinMST==0) > 0) {
+                        orderinMST <- 0
+                  } else {
+                        orderinMST <- 1
+                  }      
             } else {
-                  orderinMST <- 1
+                  orderinMST <- 0
             }
       }          
       internalorderfunc <- function(internalorder,MSTinout) {

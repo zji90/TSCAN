@@ -27,3 +27,4 @@ Suggests:
 Depends:
     R(>= 2.10.0)
 biocViews: GeneExpression, Visualization, GUI
+RoxygenNote: 5.0.1
