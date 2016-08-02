@@ -27,6 +27,11 @@ For users with R programming experience, command line tools are also available i
 ## TSCAN Datasets
 The example datasets for TSCAN paper can be downloaded on Github: https://github.com/zji90/TSCANdata
 
+## Citation
+Please cite the following paper:
+Zhicheng Ji and Hongkai Ji. TSCAN: Pseudo-time reconstruction and evaluation in single-cell RNA-seq analysis. (2016) Nucleic Acids Research, 44(13):e117.
+
+
 ## Contact the Author
 Author: Zhicheng Ji, Hongkai Ji
 
