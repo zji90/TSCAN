@@ -5,7 +5,8 @@
 \title{plotmclust}
 \usage{
 plotmclust(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T,
-  show_cell_names = T, cell_name_size = 3, markerexpr = NULL)
+  show_full_tree = F, show_cell_names = T, cell_name_size = 3,
+  markerexpr = NULL)
 }
 \arguments{
 \item{mclustobj}{The exact output of \code{\link{exprmclust}} function.}
@@ -17,6 +18,8 @@ plotmclust(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T,
 \item{MSTorder}{The arbitrary order of cluster to be shown on the plot.}
 
 \item{show_tree}{Whether to show the links between cells connected in the minimum spanning tree.}
+
+\item{show_full_tree}{Whether to show the full tree or not. Only useful when show_tree=T. Overrides MSTorder.}
 
 \item{show_cell_names}{Whether to draw the name of each cell in the plot.}
 
@@ -42,4 +45,3 @@ plotmclust(lpsmclust)
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }
-

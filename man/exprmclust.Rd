@@ -42,10 +42,9 @@ data(lpsdata)
 procdata <- preprocess(lpsdata)
 exprmclust(procdata)
 }
-\author{
-Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
-}
 \references{
 Fraley, C., & Raftery, A. E. (2002). Model-based clustering, discriminant analysis, and density estimation. Journal of the American Statistical Association, 97(458), 611-631.
 }
-
+\author{
+Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
+}

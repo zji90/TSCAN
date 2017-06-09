@@ -35,4 +35,3 @@ orderscore(subpopulation, orders)
 \author{
 Zhicheng Ji, Hongkai Ji <zji4@zji4.edu>
 }
-
