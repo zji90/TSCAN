@@ -11,6 +11,7 @@
 #' @param clusternum An integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two other 
 #' @param modelNames model to be used in model-based clustering. By default "ellipsoidal, varying volume, shape, and orientation" is used.
 #' @param reduce Whether to perform the PCA on the expression data.
+#' @param cluster A vector of user specified clustering results. Must be integers starting from 1 with no gap. THe name of the vector should be the same as the column names of the data. If not null then clusternum and modelNames will both be ignored.
 #' @return if more than one cluster detected, a list containing
 #' \itemize{
 #'    \item pcareduceres Numeric matrix containing the transformed expression values after PCA.
@@ -30,9 +31,14 @@
 #' data(lpsdata)
 #' procdata <- preprocess(lpsdata)
 #' exprmclust(procdata)
+#' 
+#' userclust <- sample(1:2,ncol(lpsdata),replace = T)
+#' names(userclust) <- colnames(procdata)
+#' exprmclust(procdata,cluster=userclust)
 
-exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T) { 
+exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T, cluster = NULL) { 
       set.seed(12345)
+      
       if (reduce) {
             sdev <- prcomp(t(data),scale=T)$sdev[1:20]
             x <- 1:20
@@ -49,16 +55,20 @@ exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T) {
       } else {
             pcareduceres <- t(data)
       }
-      
-      clusternum <- clusternum[clusternum > 1]
-      
-      res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VVV"),error=function(e) {}, warning=function(w) {})
-      if (is.null(res)) {
-            res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VEV"),error=function(e) {}, warning=function(w) {})
+      if (is.null(cluster)) {      
+            clusternum <- clusternum[clusternum > 1]
+            res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VVV"),error=function(e) {}, warning=function(w) {})
+            if (is.null(res)) {
+                  res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VEV"),error=function(e) {}, warning=function(w) {})
+            }
+            clunum <- res$G
+            clusterid <- apply(res$z,1,which.max)
+      } else {
+            clunum <- length(unique(cluster))
+            clusterid <- cluster
       }
-      clusterid <- apply(res$z,1,which.max)
-      clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=res$G)
-      for (cid in 1:res$G) {
+      clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=clunum)
+      for (cid in 1:clunum) {
             clucenter[cid,] <- colMeans(pcareduceres[names(clusterid[clusterid==cid]),,drop=F])
       }
       
