@@ -36,8 +36,7 @@
 #' names(userclust) <- colnames(procdata)
 #' exprmclust(procdata,cluster=userclust)
 
-function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, cluster = NULL) 
-{
+exprmclust <- function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, cluster = NULL) {
       set.seed(12345)
       if (reduce) {
             sdev <- prcomp(t(data), scale = T)$sdev[1:20]
