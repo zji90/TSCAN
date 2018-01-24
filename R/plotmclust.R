@@ -36,10 +36,10 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
       edge_df$markerexpr <- markerexpr[edge_df$sample_name]
       if (!is.null(markerexpr)) {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2, size = markerexpr))
-            g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)
+            g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE)
       } else {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
-            g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE,size=3)
+            g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE,size=3)
       }
       if (show_cell_names) {
             g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
@@ -89,7 +89,7 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
             theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
             theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20)) + theme(legend.key = element_blank()) + 
             theme(panel.background = element_rect(fill = "white")) +
-            theme(axis.text.x = element_text(size=17,color="darkred"),
+            theme(axis.text.x = element_text(size=17,color="black"),
                   axis.text.y = element_text(size=17,color='black'),
                   axis.title.x = element_text(size=20,vjust=-1),
                   axis.title.y = element_text(size=20,vjust=1),
