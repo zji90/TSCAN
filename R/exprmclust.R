@@ -36,45 +36,39 @@
 #' names(userclust) <- colnames(procdata)
 #' exprmclust(procdata,cluster=userclust)
 
-exprmclust <- function(data, clusternum = 2:9, modelNames="VVV", reduce = T, cluster = NULL) { 
+function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, cluster = NULL) 
+{
       set.seed(12345)
-      
       if (reduce) {
-            sdev <- prcomp(t(data),scale=T)$sdev[1:20]
+            sdev <- prcomp(t(data), scale = T)$sdev[1:20]
             x <- 1:20
             optpoint <- which.min(sapply(2:10, function(i) {
-                  x2 <- pmax(0,x-i)
-                  sum(lm(sdev~x+x2)$residuals^2)
+                  x2 <- pmax(0, x - i)
+                  sum(lm(sdev ~ x + x2)$residuals^2)
             }))
             pcadim = optpoint + 1
-            
-            tmpdata <- t(apply(data,1,scale))
+            tmpdata <- t(apply(data, 1, scale))
             colnames(tmpdata) <- colnames(data)
-            tmppc <- prcomp(t(tmpdata),scale=T)
-            pcareduceres <- t(tmpdata) %*% tmppc$rotation[,1:pcadim]      
-      } else {
+            tmppc <- prcomp(t(tmpdata), scale = T)
+            pcareduceres <- t(tmpdata) %*% tmppc$rotation[, 1:pcadim]
+      }
+      else {
             pcareduceres <- t(data)
       }
-      if (is.null(cluster)) {      
+      if (is.null(cluster)) {   
             clusternum <- clusternum[clusternum > 1]
-            res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VVV"),error=function(e) {}, warning=function(w) {})
-            if (is.null(res)) {
-                  res <- tryCatch(Mclust(pcareduceres,G=clusternum,modelNames="VEV"),error=function(e) {}, warning=function(w) {})
-            }
-            clunum <- res$G
-            clusterid <- apply(res$z,1,which.max)
+            res <- suppressWarnings(Mclust(pcareduceres, G = clusternum, modelNames = modelNames))
+            clusterid <- apply(res$z, 1, which.max)
       } else {
             clunum <- length(unique(cluster))
             clusterid <- cluster
       }
-      clucenter <- matrix(0,ncol=ncol(pcareduceres),nrow=clunum)
-      for (cid in 1:clunum) {
-            clucenter[cid,] <- colMeans(pcareduceres[names(clusterid[clusterid==cid]),,drop=F])
+      clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = res$G)
+      for (cid in 1:res$G) {
+            clucenter[cid, ] <- colMeans(pcareduceres[names(clusterid[clusterid == cid]), , drop = F])
       }
-      
-      dp <- as.matrix(dist(clucenter))                                            
+      dp <- as.matrix(dist(clucenter))
       gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
       dp_mst <- minimum.spanning.tree(gp)
-      list(pcareduceres=pcareduceres,MSTtree=dp_mst,clusterid=clusterid,clucenter=clucenter)      
-      
+      list(pcareduceres = pcareduceres, MSTtree = dp_mst, clusterid = clusterid, clucenter = clucenter)
 }
