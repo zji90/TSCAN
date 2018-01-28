@@ -20,7 +20,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' TSCANorder(lpsmclust)
 
-TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=T,flip=F,listbranch=F,divide=T) {
+TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F,divide=T) {
       if (!is.null(MSTorder) & length(MSTorder) == 1) {
             stop("MSTorder is not a path!")
       }

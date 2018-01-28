@@ -23,7 +23,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' plotmclust(lpsmclust)
 
-plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = T, cell_name_size = 3, markerexpr = NULL) {
+plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = F, cell_name_size = 3, markerexpr = NULL, showcluster = T) {
       color_by = "State"
       
       lib_info_with_pseudo <- data.frame(State=mclustobj$clusterid,sample_name=names(mclustobj$clusterid))
@@ -33,13 +33,21 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
       colnames(pca_space_df) <- c("pca_dim_1","pca_dim_2")
       pca_space_df$sample_name <- row.names(pca_space_df)
       edge_df <- merge(pca_space_df, lib_info_with_pseudo, by.x = "sample_name", by.y = "sample_name")     
-      edge_df$markerexpr <- markerexpr[edge_df$sample_name]
+      edge_df$Marker <- markerexpr[edge_df$sample_name]
       if (!is.null(markerexpr)) {
-            g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2, size = markerexpr))
-            g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE)
+            g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2, size = Marker))
+            if (showcluster) {
+                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE)      
+            } else {
+                  g <- g + geom_point(na.rm = TRUE,color="green")
+            }
       } else {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
-            g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE,size=3)
+            if (showcluster) {
+                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE, size = 3)      
+            } else {
+                  g <- g + geom_point(na.rm = TRUE, size = 3)
+            }
       }
       if (show_cell_names) {
             g <- g + geom_text(aes(label = sample_name), size = cell_name_size)
@@ -87,7 +95,7 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
             theme(panel.border = element_blank(), axis.line = element_line()) + 
             theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
             theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
-            theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20)) + theme(legend.key = element_blank()) + 
+            theme(legend.position = "top", legend.key.size = unit(0.3, "in"),legend.text = element_text(size = 20),legend.title=element_text(size = 20),legend.box = "vertical") + theme(legend.key = element_blank()) + 
             theme(panel.background = element_rect(fill = "white")) +
             theme(axis.text.x = element_text(size=17,color="black"),
                   axis.text.y = element_text(size=17,color='black'),

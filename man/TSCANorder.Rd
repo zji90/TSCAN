@@ -4,7 +4,7 @@
 \alias{TSCANorder}
 \title{TSCANorder}
 \usage{
-TSCANorder(mclustobj, MSTorder = NULL, orderonly = T, flip = F,
+TSCANorder(mclustobj, MSTorder = NULL, orderonly = F, flip = F,
   listbranch = F, divide = T)
 }
 \arguments{

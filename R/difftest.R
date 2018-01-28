@@ -20,6 +20,7 @@
 #' row.names(diffval)[diffval$qval < 0.05]
 
 difftest <- function(data, TSCANorder, df = 3) {   
+      TSCANorder <- TSCANorder[,1]
       ptime <- 1:length(TSCANorder)
       pval <- apply(data[,TSCANorder], 1, function(x) {
             if (sum(x) == 0) {
