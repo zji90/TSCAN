@@ -58,12 +58,13 @@ exprmclust <- function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, 
             clusternum <- clusternum[clusternum > 1]
             res <- suppressWarnings(Mclust(pcareduceres, G = clusternum, modelNames = modelNames))
             clusterid <- apply(res$z, 1, which.max)
+            clunum <- res$G
       } else {
             clunum <- length(unique(cluster))
             clusterid <- cluster
       }
-      clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = res$G)
-      for (cid in 1:res$G) {
+      clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = clunum)
+      for (cid in 1:clunum) {
             clucenter[cid, ] <- colMeans(pcareduceres[names(clusterid[clusterid == cid]), , drop = F])
       }
       dp <- as.matrix(dist(clucenter))
