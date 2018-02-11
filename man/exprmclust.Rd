@@ -16,7 +16,7 @@ exprmclust(data, clusternum = 2:9, modelNames = "VVV", reduce = T,
 
 \item{reduce}{Whether to perform the PCA on the expression data.}
 
-\item{cluster}{A vector of user specified clustering results. Must be integers and the order should be the same as the data columns. If not null then clusternum and modelNames will both be ignored.}
+\item{cluster}{A vector of user specified clustering results. Must be integers starting from 1 with no gap. THe name of the vector should be the same as the column names of the data. If not null then clusternum and modelNames will both be ignored.}
 }
 \value{
 if more than one cluster detected, a list containing
