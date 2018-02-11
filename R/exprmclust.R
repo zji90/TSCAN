@@ -65,7 +65,7 @@ exprmclust <- function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, 
       }
       clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = clunum)
       for (cid in 1:clunum) {
-            clucenter[cid, ] <- colMeans(pcareduceres[names(clusterid[clusterid == cid]), , drop = F])
+            clucenter[cid, ] <- colMeans(pcareduceres[clusterid == unique(clusterid)[cid], , drop = F])
       }
       dp <- as.matrix(dist(clucenter))
       gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
