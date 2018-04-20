@@ -27,8 +27,8 @@ procdata <- preprocess(lpsdata)
 subpopulation <- data.frame(cell = colnames(procdata), sub = ifelse(grepl("Unstimulated",colnames(procdata)),0,1), stringsAsFactors = FALSE)
 lpsmclust <- exprmclust(procdata)
 #Comparing default TSCAN ordering and tuned TSCAN ordering
-order1 <- TSCANorder(lpsmclust)
-order2 <- TSCANorder(lpsmclust, c(1,2,3))
+order1 <- TSCANorder(lpsmclust,orderonly = T)
+order2 <- TSCANorder(lpsmclust, c(1,2,3),orderonly = T)
 orders <- list(order1,order2)
 orderscore(subpopulation, orders)
 }
