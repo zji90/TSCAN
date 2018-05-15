@@ -2,7 +2,7 @@ TSCAN: Tools For Single-Cell ANalysis
 ====
 
 ## Overview
-TSCAN is a software tool developed to better support in silico pseudo-Time reconstruction in Single-Cell RNA-seq ANalysis. A major advantage of TSCAN over other software is that it allows users to supply their own dimension reduction and cell clustering results to TSCAN (see exprmclust function), and tune the pseudotime ordering along the tree. This high flexibility is critical for scRNA-seq data where there is no universal best way of processing data.
+TSCAN is a software tool developed to better support in silico pseudo-Time reconstruction in Single-Cell RNA-seq ANalysis. A major advantage of TSCAN over many other similar methods is that it allows users to supply their own dimension reduction and cell clustering results to TSCAN (see exprmclust function), and tune the pseudotime ordering along the tree. This high flexibility is critical for scRNA-seq data where there is no universal best way of processing data.
 
 TSCAN uses a cluster-based minimum spanning tree (MST) approach to order cells. Cells are first grouped into clusters and an MST is then constructed to connect cluster centers. Pseudo-time is obtained by projecting each cell onto the tree, and the ordered sequence of cells can be used to study dynamic changes of gene expression along the pseudo-time. Clustering cells before MST construction reduces the complexity of the tree space. This often leads to improved cell ordering. It also allows users to conveniently adjust the ordering based on prior knowledge.
 
