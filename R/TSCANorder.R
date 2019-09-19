@@ -93,7 +93,7 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F
                   names(pos) <- row.names(tmppos)
                   TSCANorder <- c(TSCANorder,names(sort(pos)))  
                   
-                  nextreduceres <- pcareduceres[clusterid==nextcluid,]     
+                  nextreduceres <- pcareduceres[clusterid==nextcluid,,drop=F]     
                   if (MSTinout) {
                         connectcluid <- as.numeric(names(which(adjmat[nextcluid,] == 1)))
                   } else {
@@ -107,7 +107,11 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F
                   cludist <- sapply(connectcluid, function(x) { 
                         rowSums(sweep(nextreduceres,2,clucenter[x,],"-")^2)
                   })
-                  mindistid <- apply(cludist,1,which.min)
+                  if (length(cludist)==1) {
+                    mindistid <- 1
+                  } else {
+                    mindistid <- apply(cludist,1,which.min)
+                  }
                   
                   edgecell <- names(which(mindistid == which(connectcluid == currentcluid)))
                   
