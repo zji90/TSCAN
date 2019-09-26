@@ -12,6 +12,7 @@
 #' @param show_full_tree Whether to show the full tree or not. Only useful when show_tree=T. Overrides MSTorder.
 #' @param show_cell_names Whether to draw the name of each cell in the plot.
 #' @param cell_name_size The size of cell name labels if show_cell_names is TRUE.
+#' @param cell_point_size The size of cell point.
 #' @param markerexpr The gene expression used to define the size of nodes.
 #' @return A ggplot2 object.
 #' @export
@@ -23,7 +24,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' plotmclust(lpsmclust)
 
-plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = F, cell_name_size = 3, markerexpr = NULL, showcluster = T) {
+plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = F, cell_name_size = 3, cell_point_size=3,markerexpr = NULL, showcluster = T) {
       color_by = "State"
       
       lib_info_with_pseudo <- data.frame(State=mclustobj$clusterid,sample_name=names(mclustobj$clusterid))
@@ -44,9 +45,9 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
       } else {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
             if (showcluster) {
-                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE, size = 3)      
+                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE, size = cell_point_size)      
             } else {
-                  g <- g + geom_point(na.rm = TRUE, size = 3)
+                  g <- g + geom_point(na.rm = TRUE, size = cell_point_size)
             }
       }
       if (show_cell_names) {
