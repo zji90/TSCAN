@@ -17,7 +17,7 @@ To install the latest version of TSCAN package via Github, run following command
 ```{r }
 if (!require("devtools"))
   install.packages("devtools")
-devtools::install_github("TSCAN","zji90")
+devtools::install_github("zji90/TSCAN")
 ```
 To launch user interface after installation, run following commands in R:
 ```{r }
