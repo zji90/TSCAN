@@ -4,11 +4,20 @@
 \alias{TSCANorder}
 \title{TSCANorder}
 \usage{
-TSCANorder(mclustobj, MSTorder = NULL, orderonly = F, flip = F,
-  listbranch = F, divide = T)
+TSCANorder(
+  mclustobj,
+  startcluster = NULL,
+  MSTorder = NULL,
+  orderonly = F,
+  flip = F,
+  listbranch = F,
+  divide = T
+)
 }
 \arguments{
 \item{mclustobj}{The exact output of the \code{\link{exprmclust}} function.}
+
+\item{startcluster}{A numeric value specifying the cluster where pseudotime starts from.}
 
 \item{MSTorder}{A numeric vector specifying the order of clusters.}
 

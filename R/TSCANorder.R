@@ -6,6 +6,7 @@
 #' Users can also specify their own path.
 #' 
 #' @param mclustobj The exact output of the \code{\link{exprmclust}} function.
+#' @param startcluster A numeric value specifying the cluster where pseudotime starts from.
 #' @param MSTorder A numeric vector specifying the order of clusters.
 #' @param orderonly Only return the ordering. State or pseudotime information will not be returned
 #' @param flip whether to flip the ordering
@@ -20,7 +21,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' TSCANorder(lpsmclust)
 
-TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F,divide=T) {
+TSCANorder <- function(mclustobj,startcluster=NULL,MSTorder = NULL,orderonly=F,flip=F,listbranch=F,divide=T) {
       if (!is.null(MSTorder) & length(MSTorder) == 1) {
             stop("MSTorder is not a path!")
       }
@@ -34,18 +35,27 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F
             orderinMST <- 1
             clutable <- table(mclustobj$clusterid)
             alldeg <- degree(mclustobj$MSTtree)
-            allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg==1]),as.numeric(names(alldeg)[alldeg==1]))
-            allcomb <- allcomb[allcomb[,1] < allcomb[,2],]
-            numres <- t(apply(allcomb, 1, function(i) {
-                  tmp <- as.vector(get.shortest.paths(mclustobj$MSTtree,i[1],i[2])$vpath[[1]])
-                  c(length(tmp), sum(clutable[tmp]))
-            }))
-            optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
-            branchcomb <- allcomb[-order(numres[,1],numres[,2],decreasing = T)[1],]
-            MSTorder <- get.shortest.paths(mclustobj$MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
-            if (flip) {
-                  MSTorder <- rev(MSTorder)
+            if (is.null(startcluster)) {
+                  allcomb <- expand.grid(as.numeric(names(alldeg)[alldeg==1]),as.numeric(names(alldeg)[alldeg==1]))
+                  allcomb <- allcomb[allcomb[,1] < allcomb[,2],]
+                  numres <- t(apply(allcomb, 1, function(i) {
+                        tmp <- as.vector(get.shortest.paths(mclustobj$MSTtree,i[1],i[2])$vpath[[1]])
+                        c(length(tmp), sum(clutable[tmp]))
+                  }))
+                  optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
+                  branchcomb <- allcomb[-order(numres[,1],numres[,2],decreasing = T)[1],,drop=F]
+                  MSTorder <- get.shortest.paths(mclustobj$MSTtree,optcomb[1],optcomb[2])$vpath[[1]]       
+            } else {
+                  allcomb <- cbind(startcluster,setdiff(as.numeric(names(alldeg)[alldeg==1]),startcluster))
+                  numres <- t(apply(allcomb, 1, function(i) {
+                        tmp <- as.vector(get.shortest.paths(mclustobj$MSTtree,i[1],i[2])$vpath[[1]])
+                        c(length(tmp), sum(clutable[tmp]))
+                  }))
+                  optcomb <- allcomb[order(numres[,1],numres[,2],decreasing = T)[1],]
+                  branchcomb <- allcomb[-order(numres[,1],numres[,2],decreasing = T)[1],,drop=F]
+                  MSTorder <- get.shortest.paths(mclustobj$MSTtree,optcomb[1],optcomb[2])$vpath[[1]] 
             }
+            if (flip) MSTorder <- rev(MSTorder)
       } else {
             edgeinMST <- sapply(1:(length(MSTorder)-1),function(i) {
                   adjmat[MSTorder[i],MSTorder[i+1]]
@@ -144,6 +154,7 @@ TSCANorder <- function(mclustobj,MSTorder = NULL,orderonly=F,flip=F,listbranch=F
                   allres[[paste("backbone",paste(MSTorder,collapse = ','))]] <- internalorderfunc(MSTorder,1)                    
                   for (tmpcombid in 1:nrow(branchcomb)) {
                         tmporder <- get.shortest.paths(mclustobj$MSTtree,branchcomb[tmpcombid,1],branchcomb[tmpcombid,2])$vpath[[1]] 
+                        if (flip) tmporder <- rev(tmporder)
                         allres[[paste("branch:",paste(tmporder,collapse = ','))]] <- internalorderfunc(tmporder,1)
                   }
                   allres

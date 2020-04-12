@@ -3,7 +3,6 @@
 \docType{package}
 \name{TSCAN}
 \alias{TSCAN}
-\alias{TSCAN-package}
 \title{TSCAN: Tools for Single-Cell ANalysis}
 \description{
 This package provides essential tools used in analyzing data from single-cell experiments

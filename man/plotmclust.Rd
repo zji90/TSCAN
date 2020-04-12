@@ -4,9 +4,19 @@
 \alias{plotmclust}
 \title{plotmclust}
 \usage{
-plotmclust(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T,
-  show_full_tree = F, show_cell_names = F, cell_name_size = 3,
-  cell_point_size = 3, markerexpr = NULL, showcluster = T)
+plotmclust(
+  mclustobj,
+  x = 1,
+  y = 2,
+  MSTorder = NULL,
+  show_tree = T,
+  show_full_tree = F,
+  show_cell_names = F,
+  cell_name_size = 3,
+  cell_point_size = 3,
+  markerexpr = NULL,
+  showcluster = T
+)
 }
 \arguments{
 \item{mclustobj}{The exact output of \code{\link{exprmclust}} function.}

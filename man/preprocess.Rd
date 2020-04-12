@@ -4,9 +4,16 @@
 \alias{preprocess}
 \title{preprocess}
 \usage{
-preprocess(data, clusternum = NULL, takelog = TRUE, logbase = 2,
-  pseudocount = 1, minexpr_value = 1, minexpr_percent = 0.5,
-  cvcutoff = 1)
+preprocess(
+  data,
+  clusternum = NULL,
+  takelog = TRUE,
+  logbase = 2,
+  pseudocount = 1,
+  minexpr_value = 1,
+  minexpr_percent = 0.5,
+  cvcutoff = 1
+)
 }
 \arguments{
 \item{data}{The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.}

@@ -4,8 +4,13 @@
 \alias{exprmclust}
 \title{exprmclust}
 \usage{
-exprmclust(data, clusternum = 2:9, modelNames = "VVV", reduce = T,
-  cluster = NULL)
+exprmclust(
+  data,
+  clusternum = 2:9,
+  modelNames = "VVV",
+  reduce = T,
+  cluster = NULL
+)
 }
 \arguments{
 \item{data}{The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.}

@@ -3,7 +3,9 @@
 \name{lpsdata}
 \alias{lpsdata}
 \title{Sinlge-cell RNA-seq data for BMDC cells before and after LPS stimulation}
-\format{A matrix with 16776 rows and 131 variables}
+\format{
+A matrix with 16776 rows and 131 variables
+}
 \source{
 \url{http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE48968}
 }
