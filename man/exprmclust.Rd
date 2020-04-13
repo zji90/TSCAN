@@ -6,6 +6,7 @@
 \usage{
 exprmclust(
   data,
+  clustermethod = "mclust",
   clusternum = 2:9,
   modelNames = "VVV",
   reduce = T,
@@ -15,7 +16,9 @@ exprmclust(
 \arguments{
 \item{data}{The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.}
 
-\item{clusternum}{An integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two other}
+\item{clustermethod}{Either 'mclust' (model-based clustering) or 'kmeans' (k-means clustering). If 'kmeans', clusternum must be specified.}
+
+\item{clusternum}{For mclust, an integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two. For kmeans, the number of clusters.}
 
 \item{modelNames}{model to be used in model-based clustering. By default "ellipsoidal, varying volume, shape, and orientation" is used.}
 

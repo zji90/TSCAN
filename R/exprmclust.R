@@ -8,7 +8,8 @@
 #' The clustering results will be used for TSCAN ordering.
 #'
 #' @param data The raw single_cell data, which is a numeric matrix or data.frame. Rows represent genes/features and columns represent single cells.
-#' @param clusternum An integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two other 
+#' @param clustermethod Either 'mclust' (model-based clustering) or 'kmeans' (k-means clustering). If 'kmeans', clusternum must be specified.
+#' @param clusternum For mclust, an integer vector specifying all possible cluster numbers. The best cluster number will be picked using BIC. The minimum value should be two. For kmeans, the number of clusters.
 #' @param modelNames model to be used in model-based clustering. By default "ellipsoidal, varying volume, shape, and orientation" is used.
 #' @param reduce Whether to perform the PCA on the expression data.
 #' @param cluster A vector of user specified clustering results. Must be integers starting from 1 with no gap. THe name of the vector should be the same as the column names of the data. If not null then clusternum and modelNames will both be ignored.
@@ -36,7 +37,7 @@
 #' names(userclust) <- colnames(procdata)
 #' exprmclust(procdata,cluster=userclust)
 
-exprmclust <- function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, cluster = NULL) {
+exprmclust <- function (data, clustermethod = 'mclust', clusternum = 2:9, modelNames = "VVV", reduce = T, cluster = NULL) {
       set.seed(12345)
       if (reduce) {
             sdev <- prcomp(t(data), scale = T)$sdev[1:20]
@@ -54,14 +55,19 @@ exprmclust <- function (data, clusternum = 2:9, modelNames = "VVV", reduce = T, 
       else {
             pcareduceres <- t(data)
       }
-      if (is.null(cluster)) {   
-            clusternum <- clusternum[clusternum > 1]
-            res <- suppressWarnings(Mclust(pcareduceres, G = clusternum, modelNames = modelNames))
-            clusterid <- apply(res$z, 1, which.max)
-            clunum <- res$G
+      if (clustermethod=='mclust') {
+            if (is.null(cluster)) {   
+                  clusternum <- clusternum[clusternum > 1]
+                  res <- suppressWarnings(Mclust(pcareduceres, G = clusternum, modelNames = modelNames))
+                  clusterid <- apply(res$z, 1, which.max)
+                  clunum <- res$G
+            } else {
+                  clunum <- length(unique(cluster))
+                  clusterid <- cluster
+            }
       } else {
-            clunum <- length(unique(cluster))
-            clusterid <- cluster
+            clusterid <- kmeans(pcareduceres,clusternum)$cluster
+            clunum <- clusternum
       }
       clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = clunum)
       for (cid in 1:clunum) {
