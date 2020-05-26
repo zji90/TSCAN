@@ -24,7 +24,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' plotmclust(lpsmclust)
 
-plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = F, cell_name_size = 3, cell_point_size=3,markerexpr = NULL, showcluster = T) {
+plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = T, show_cell_names = F, cell_name_size = 3, cell_point_size=3,markerexpr = NULL, showcluster = T) {
       color_by = "State"
       
       lib_info_with_pseudo <- data.frame(State=mclustobj$clusterid,sample_name=names(mclustobj$clusterid))
