@@ -20,11 +20,13 @@ Imports:
     combinat,
     mgcv,
     mclust,
-    gplots
+    gplots,
+    SummarizedExperiment,
+    SingleCellExperiment
 VignetteBuilder: knitr
 Suggests:
     knitr
 Depends:
     R(>= 2.10.0)
 biocViews: GeneExpression, Visualization, GUI
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
