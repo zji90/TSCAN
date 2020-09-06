@@ -5,22 +5,21 @@
 #' This represents the most parsimonious explanation for a particular trajectory
 #' and has the advantage of being directly intepretable with respect to any pre-existing clusters.
 #'
-#' @param x A numeric matrix of coordinates for cluster centroids,
-#' where each \emph{row} represents a cluster and each column represents a dimension 
-#' (usually a PC or another low-dimensional embedding).
-#' Each row should be named with the cluster name.
-#'
-#' Alternatively, a numeric matrix of coordinates where each row represents a cell/sample
-#' and each column represents a dimension.
-#' In this case, \code{clusters} should be specified for internal use to compute the cluster centroids.
+#' @param x A numeric matrix of coordinates where each row represents a cell/sample and each column represents a dimension
+#' (usually a PC or another low-dimensional embedding, but features or genes can also be used).
 #'
 #' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object
 #' containing such a matrix in its \code{\link{assays}}, as specified by \code{assay.type}.
-#' This will be transposed prior to use as or computation of the cluster centroids.
+#' This will be transposed prior to use.
 #'
 #' Alternatively, for \linkS4class{SingleCellExperiment}s, this matrix may be extracted from its \code{\link{reducedDims}},
 #' based on the \code{use.dimred} specification.
 #' In this case, no transposition is performed.
+#'
+#' Alternatively, if \code{clusters=NULL}, a numeric matrix of coordinates for cluster centroids,
+#' where each row represents a cluster and each column represents a dimension 
+#' Each row should be named with the cluster name.
+#' This mode can also be used with assays/matrices extracted from SummarizedExperiments and SingleCellExperiments. 
 #' @param ... For the generic, further arguments to pass to the specific methods.
 #'
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
@@ -37,6 +36,8 @@
 #' @param outscale A numeric scalar specifying the scaling to apply to the median distance between centroids
 #' to define the threshold for outgroup splitting.
 #' Only used if \code{outgroup=TRUE}.
+#' @param assay.type An integer or string specifying the assay to use from a SummarizedExperiment \code{x}.
+#' @param use.dimred An integer or string specifying the reduced dimensions to use from a SingleCellExperiment \code{x}.
 #'
 #' @section Introducing an outgroup:
 #' If \code{outgroup=TRUE}, we add an outgroup to avoid constructing a trajectory between \dQuote{unrelated} clusters.
@@ -84,10 +85,20 @@
 #' cells <- centers[clusters,]
 #' cells <- cells + rnorm(length(cells), sd=0.5)
 #'
-#' # Creating the MST first:
-#' mst <- createClusterMST(centers)
+#' # Creating the MST:
+#' mst <- createClusterMST(cells, clusters)
 #' plot(mst)
 #'
+#' # We could also do it on the centers:
+#' mst2 <- createClusterMST(centers, clusters=NULL)
+#' plot(mst2)
+#'
+#' # Works if the expression matrix is in a SE:
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(t(cells), colData=DataFrame(group=clusters))
+#' mst3 <- createClusterMST(se, se$group, assay.type=1)
+#' plot(mst3)
+#' 
 #' @name createClusterMST
 NULL
 
@@ -95,15 +106,13 @@ NULL
 
 #' @importFrom igraph graph.adjacency minimum.spanning.tree delete_vertices E V V<-
 #' @importFrom stats median dist
-.create_cluster_mst <- function(x, clusters=NULL, outgroup=FALSE, outscale=3, columns=NULL) {
+.create_cluster_mst <- function(x, clusters, outgroup=FALSE, outscale=3, columns=NULL) {
     if (!is.null(columns)) {
         x <- x[,columns,drop=FALSE]                
     }
 
     if (!is.null(clusters)) {
-        x <- rowsum(x, clusters)
-        tab <- table(clusters)
-        x <- x / as.integer(tab[rownames(x)])
+        x <- rowmean(x, clusters)
     }
 
     centers <- as.matrix(x)
@@ -178,14 +187,16 @@ setGeneric("createClusterMST", function(x, ...) standardGeneric("createClusterMS
 setMethod("createClusterMST", "ANY", .create_cluster_mst)
 
 #' @export
+#' @rdname createClusterMST
 #' @importFrom Matrix t
 #' @importFrom SummarizedExperiment assay
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
-setMethod("createClusterMST", "SummarizedExperiment", function(x, ..., assay.type=1) {
-    .create_cluster_mst(t(assay(x, assay.type)), ...)    
+setMethod("createClusterMST", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .create_cluster_mst(t(assay(x, assay.type)), ...)
 })
 
 #' @export
+#' @rdname createClusterMST
 #' @importFrom SingleCellExperiment reducedDim
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
 setMethod("createClusterMST", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {

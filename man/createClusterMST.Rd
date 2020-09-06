@@ -3,35 +3,34 @@
 \name{createClusterMST}
 \alias{createClusterMST}
 \alias{createClusterMST,ANY-method}
+\alias{createClusterMST,SummarizedExperiment-method}
+\alias{createClusterMST,SingleCellExperiment-method}
 \title{Minimum spanning trees on cluster centroids}
 \usage{
 createClusterMST(x, ...)
 
-\S4method{createClusterMST}{ANY}(
-  x,
-  clusters = NULL,
-  outgroup = FALSE,
-  outscale = 3,
-  columns = NULL
-)
+\S4method{createClusterMST}{ANY}(x, clusters, outgroup = FALSE, outscale = 3, columns = NULL)
+
+\S4method{createClusterMST}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{createClusterMST}{SingleCellExperiment}(x, ..., use.dimred = NULL)
 }
 \arguments{
-\item{x}{A numeric matrix of coordinates for cluster centroids,
-where each \emph{row} represents a cluster and each column represents a dimension 
-(usually a PC or another low-dimensional embedding).
-Each row should be named with the cluster name.
-
-Alternatively, a numeric matrix of coordinates where each row represents a cell/sample
-and each column represents a dimension.
-In this case, \code{clusters} should be specified for internal use to compute the cluster centroids.
+\item{x}{A numeric matrix of coordinates where each row represents a cell/sample and each column represents a dimension
+(usually a PC or another low-dimensional embedding, but features or genes can also be used).
 
 Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object
 containing such a matrix in its \code{\link{assays}}, as specified by \code{assay.type}.
-This will be transposed prior to use as or computation of the cluster centroids.
+This will be transposed prior to use.
 
 Alternatively, for \linkS4class{SingleCellExperiment}s, this matrix may be extracted from its \code{\link{reducedDims}},
 based on the \code{use.dimred} specification.
-In this case, no transposition is performed.}
+In this case, no transposition is performed.
+
+Alternatively, if \code{clusters=NULL}, a numeric matrix of coordinates for cluster centroids,
+where each row represents a cluster and each column represents a dimension 
+Each row should be named with the cluster name.
+This mode can also be used with assays/matrices extracted from SummarizedExperiments and SingleCellExperiments.}
 
 \item{...}{For the generic, further arguments to pass to the specific methods.
 
@@ -53,6 +52,10 @@ Only used if \code{outgroup=TRUE}.}
 
 \item{columns}{A character, logical or integer vector specifying the columns of \code{x} to use.
 If \code{NULL}, all provided columns are used by default.}
+
+\item{assay.type}{An integer or string specifying the assay to use from a SummarizedExperiment \code{x}.}
+
+\item{use.dimred}{An integer or string specifying the reduced dimensions to use from a SingleCellExperiment \code{x}.}
 }
 \value{
 A \link{graph} object containing an MST computed on \code{centers}.
@@ -104,9 +107,19 @@ clusters <- sample(nrow(centers), 1000, replace=TRUE)
 cells <- centers[clusters,]
 cells <- cells + rnorm(length(cells), sd=0.5)
 
-# Creating the MST first:
-mst <- createClusterMST(centers)
+# Creating the MST:
+mst <- createClusterMST(cells, clusters)
 plot(mst)
+
+# We could also do it on the centers:
+mst2 <- createClusterMST(centers, clusters=NULL)
+plot(mst2)
+
+# Works if the expression matrix is in a SE:
+library(SummarizedExperiment)
+se <- SummarizedExperiment(t(cells), colData=DataFrame(group=clusters))
+mst3 <- createClusterMST(se, se$group, assay.type=1)
+plot(mst3)
 
 }
 \references{
