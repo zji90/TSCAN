@@ -82,7 +82,7 @@ NULL
 #' @importFrom S4Vectors DataFrame
 #' @importFrom igraph V
 #' @importFrom Matrix which t
-.map_cells_to_mst <- function(x, mst, clusters) {
+.map_cells_to_mst <- function(x, mst, clusters, columns=NULL) {
     # Getting the start and end of every edge.
     pairs <- which(mst[] > 0, arr.ind=TRUE)
     pairs <- pairs[pairs[,1] > pairs[,2],,drop=FALSE]
@@ -91,6 +91,9 @@ NULL
 
     distance.to.edge <- matrix(Inf, nrow(x), nrow(pairs))
     left.gap <- right.gap <- matrix(NA_real_, nrow(x), nrow(pairs))
+    if (!is.null(columns)) {
+        x <- x[,columns,drop=FALSE]
+    }
 
     # Computing distance of each point from each edge.
     for (i in seq_len(nrow(pairs))) {
@@ -155,10 +158,10 @@ setMethod("mapCellsToEdges", "SummarizedExperiment", function(x, ..., assay.type
 #' @rdname mapCellsToEdges
 #' @importFrom SingleCellExperiment reducedDim
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-setMethod("mapCellsToEdges", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
+setMethod("mapCellsToEdges", "SingleCellExperiment", function(x, clusters=colLabels(x, onAbsence="error"), ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        .create_cluster_mst(reducedDim(x, use.dimred), ...)    
+        .create_cluster_mst(reducedDim(x, use.dimred), clusters=clusters, ...)
     } else {
-        callNextMethod()
+        callNextMethod(x, clusters=clusters, ...)
     }
 })

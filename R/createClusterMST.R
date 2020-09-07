@@ -199,10 +199,10 @@ setMethod("createClusterMST", "SummarizedExperiment", function(x, ..., assay.typ
 #' @rdname createClusterMST
 #' @importFrom SingleCellExperiment reducedDim
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-setMethod("createClusterMST", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
+setMethod("createClusterMST", "SingleCellExperiment", function(x, clusters=colLabels(x, onAbsence="error"), ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        .create_cluster_mst(reducedDim(x, use.dimred), ...)    
+        .create_cluster_mst(reducedDim(x, use.dimred), clusters=clusters, ...)
     } else {
-        callNextMethod()
+        callNextMethod(x, clusters=clusters, ...)
     }
 })

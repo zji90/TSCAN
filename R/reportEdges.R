@@ -56,7 +56,7 @@ NULL
 
 #' @importFrom Matrix which
 #' @importFrom igraph V
-.connect_cluster_mst <- function(x, mst, clusters, combined=TRUE) {
+.connect_cluster_mst <- function(x, mst, clusters, combined=TRUE, columns=NULL) {
     pairs <- which(mst[] > 0, arr.ind=TRUE)
     pairs <- pairs[pairs[,1] > pairs[,2],,drop=FALSE]
 
@@ -67,9 +67,15 @@ NULL
     if (is.null(x)) {
         x <- do.call(rbind, vertices$coordinates)
         rownames(x) <- vnames
-    } else if (!is.null(clusters)) {
-        x <- rowmean(x, clusters)
+    } else {
+        if (!is.null(columns)) {
+            x <- x[,columns,drop=FALSE]
+        }
+        if (!is.null(clusters)) {
+            x <- rowmean(x, clusters)
+        }
     } 
+
     if (!identical(sort(rownames(x)), sort(vnames))) {
         stop("cluster names in 'x' or 'clusters' should be identical to those in 'mst'")
     }
@@ -113,10 +119,10 @@ setMethod("reportEdges", "SummarizedExperiment", function(x, ..., assay.type="lo
 #' @rdname reportEdges
 #' @importFrom SingleCellExperiment reducedDim
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-setMethod("reportEdges", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
+setMethod("reportEdges", "SingleCellExperiment", function(x, clusters=colLabels(x, onAbsence="error"), ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        .connect_cluster_mst(reducedDim(x, use.dimred), ...)
+        .connect_cluster_mst(reducedDim(x, use.dimred), clusters=clusters, ...)
     } else {
-        callNextMethod()
+        callNextMethod(x, clusters=clusters, ...)
     }
 })
