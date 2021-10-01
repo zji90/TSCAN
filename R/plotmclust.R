@@ -24,7 +24,7 @@
 #' lpsmclust <- exprmclust(procdata)
 #' plotmclust(lpsmclust)
 
-plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = F, show_cell_names = F, cell_name_size = 3, cell_point_size=3,markerexpr = NULL, showcluster = T) {
+plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, show_full_tree = T, show_cell_names = F, cell_name_size = 3, cell_point_size=3,markerexpr = NULL, showcluster = T) {
       color_by = "State"
       
       lib_info_with_pseudo <- data.frame(State=mclustobj$clusterid,sample_name=names(mclustobj$clusterid))
@@ -38,14 +38,14 @@ plotmclust <- function(mclustobj, x = 1, y = 2, MSTorder = NULL, show_tree = T, 
       if (!is.null(markerexpr)) {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2, size = Marker))
             if (showcluster) {
-                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE)      
+                  g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE)      
             } else {
                   g <- g + geom_point(na.rm = TRUE,color="green")
             }
       } else {
             g <- ggplot(data = edge_df, aes(x = pca_dim_1, y = pca_dim_2))
             if (showcluster) {
-                  g <- g + geom_point(aes_string(color = color_by, shape=color_by), na.rm = TRUE, size = cell_point_size)      
+                  g <- g + geom_point(aes_string(color = color_by), na.rm = TRUE, size = cell_point_size)      
             } else {
                   g <- g + geom_point(na.rm = TRUE, size = cell_point_size)
             }
