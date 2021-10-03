@@ -10,7 +10,7 @@ plotmclust(
   y = 2,
   MSTorder = NULL,
   show_tree = T,
-  show_full_tree = F,
+  show_full_tree = T,
   show_cell_names = F,
   cell_name_size = 3,
   cell_point_size = 3,
