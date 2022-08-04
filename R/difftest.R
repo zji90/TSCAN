@@ -25,7 +25,7 @@ difftest <- function(data, order, df = 3) {
             if (sum(x) == 0) {
                   1
             } else {
-                  model <- mgcv::gam(x~s(ptime,k=3))
+                  model <- mgcv::gam(x~s(ptime,k=df))
                   pchisq(model$null.deviance - model$deviance, model$df.null - model$df.residual,lower.tail = F)                  
             }             
       })      
