@@ -38,7 +38,9 @@ Many new features can be added to TSCAN in the future. Most importantly, TSCAN w
 
 Now we use the single-cell RNA-seq data for BMDC cells before and after 6h of LPS stimulation [5] to demonstrate how TSCAN can be used to construct pseudotemporal cell ordering using TSP.
 
-\section{Preprocess Gene Expression Profiles}
+\section{(Optional) Preprocess Gene Expression Profiles}
+
+Caution! The preprocess function was designed for a very early Fluidigm dataset. It is recommended that users skip this step and perform their own filtering using pipelines such as Seurat and Scanpy.
 
 The function preprocess can be used to filter out genes which are not expressed in most cells or not differentially expressed. 
 
