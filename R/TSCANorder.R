@@ -79,7 +79,7 @@ TSCANorder <- function(mclustobj,startcluster=NULL,MSTorder = NULL,orderonly=F,f
                   currentclucenter <- clucenter[currentcluid,]
                   nextclucenter <- clucenter[nextcluid,]
                   
-                  currentreduceres <- pcareduceres[clusterid==currentcluid,]
+                  currentreduceres <- pcareduceres[clusterid==currentcluid,,drop = F]
                   if (MSTinout) {
                         connectcluid <- as.numeric(names(which(adjmat[currentcluid,] == 1)))      
                   } else {
@@ -93,7 +93,12 @@ TSCANorder <- function(mclustobj,startcluster=NULL,MSTorder = NULL,orderonly=F,f
                   cludist <- sapply(connectcluid, function(x) {                              
                         rowSums(sweep(currentreduceres,2,clucenter[x,],"-")^2)
                   })
-                  mindistid <- apply(cludist,1,which.min)
+                  if (!is.array(cludist)) {
+                    mindistid <- rep(1, length(cludist))
+                    names(mindistid) <- names(cludist)
+                  } else {
+                    mindistid <- apply(cludist,1,which.min)
+                  }
                   
                   edgecell <- names(which(mindistid == which(connectcluid == nextcluid)))
                   
@@ -117,8 +122,9 @@ TSCANorder <- function(mclustobj,startcluster=NULL,MSTorder = NULL,orderonly=F,f
                   cludist <- sapply(connectcluid, function(x) { 
                         rowSums(sweep(nextreduceres,2,clucenter[x,],"-")^2)
                   })
-                  if (length(cludist)==1) {
-                    mindistid <- 1
+                  if (!is.array(cludist)) {
+                    mindistid <- rep(1, length(cludist))
+                    names(mindistid) <- names(cludist)
                   } else {
                     mindistid <- apply(cludist,1,which.min)
                   }
